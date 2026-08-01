@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Winding Arrows: Puzzle Escape</title>
+  <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+  <link rel="stylesheet" href="src/css/style.css">
+  <script>
+    window.onerror = function(msg, url, line) {
+      const div = document.createElement('div');
+      div.style.position = 'absolute';
+      div.style.top = '0';
+      div.style.left = '0';
+      div.style.width = '100%';
+      div.style.background = '#ef4444';
+      div.style.color = 'white';
+      div.style.padding = '12px';
+      div.style.zIndex = '99999';
+      div.style.fontFamily = 'monospace';
+      div.style.fontSize = '12px';
+      div.style.lineHeight = '1.4';
+      div.innerHTML = '<strong>JS Exception:</strong> ' + msg + '<br><em>File:</em> ' + url.split('/').pop() + ' @ Line ' + line;
+      document.body.appendChild(div);
+    };
+  </script>
+</head>
+<body>
+  <div class="phone-wrapper">
+    <div class="phone-notch"></div>
+    <div class="app-container">
+
+      <!-- ================= MAIN MENU SCREEN ================= -->
+      <div id="menu-screen" class="screen active">
+        <div class="logo-container">
+          <h1 class="game-title">WINDING</h1>
+          <h1 class="game-title-sub">ARROWS</h1>
+          <p class="game-subtitle">Polyline Logic Escape</p>
+        </div>
+        <div class="menu-actions">
+          <button id="btn-play" class="btn btn-primary">Start Escape</button>
+          <button id="btn-shop" class="btn btn-secondary">Upgrade Core</button>
+        </div>
+        <div class="menu-footer">
+          <span class="currency-hud">🔋 <span id="menu-tokens-count">0</span> Power</span>
+        </div>
+      </div>
+
+      <!-- ================= LEVEL SELECT SCREEN ================= -->
+      <div id="level-select-screen" class="screen">
+        <div class="screen-header">
+          <button id="btn-level-back" class="btn btn-icon">◀</button>
+          <h2>Sectors</h2>
+        </div>
+        <div id="levels-grid" class="levels-grid">
+          <!-- Populated dynamically via JS -->
+        </div>
+      </div>
+
+      <!-- ================= GAMEPLAY SCREEN ================= -->
+      <div id="gameplay-screen" class="screen">
+        <div class="gameplay-header-row">
+          <div style="width: 32px;"></div>
+          <div class="gameplay-header-text">
+            LEVEL <span id="hud-level-num">1</span> &nbsp;|&nbsp; MOVES: <span id="game-moves-count">0</span>
+          </div>
+          <button id="btn-game-pause" class="btn-pause-float">⏸️</button>
+        </div>
+
+        <div class="hearts-row" style="text-align: center; margin-top: 4px; margin-bottom: 6px;">
+          <span id="hud-hearts" style="letter-spacing: 3px; font-size: 1.15rem;">❤️️❤️️❤️️</span>
+        </div>
+
+        <!-- Train Speed Control Row -->
+        <div id="train-speed-control-row" style="display: none; justify-content: center; align-items: center; gap: 12px; margin: 4px 0 10px 0;">
+          <span style="font-weight: 600; font-size: 0.85rem; color: #57534e;">Train Speed:</span>
+          <button id="btn-speed-decrease" class="btn-3d" style="width: 32px; height: 32px; padding: 0; font-weight: bold; font-size: 1.1rem; line-height: 1; border-radius: 8px;">-</button>
+          <span id="hud-train-speed" style="font-weight: bold; min-width: 45px; text-align: center; font-size: 0.95rem; color: #1c1917;">1.0x</span>
+          <button id="btn-speed-increase" class="btn-3d" style="width: 32px; height: 32px; padding: 0; font-weight: bold; font-size: 1.1rem; line-height: 1; border-radius: 8px;">+</button>
+        </div>
+
+        <div class="progress-bar-container">
+          <div class="progress-bar-fill" id="game-progress-fill" style="width: 0%;"></div>
+        </div>
+
+        <div class="canvas-wrapper">
+          <canvas id="game-canvas" width="360" height="460"></canvas>
+        </div>
+
+        <div class="action-footer">
+          <button id="btn-undo" class="btn-3d">
+            <span class="btn-3d-icon">↩️</span>
+            <span class="btn-3d-label">UNDO</span>
+          </button>
+          <button id="btn-hint" class="btn-3d">
+            <span class="btn-3d-icon">💡</span>
+            <span class="btn-3d-label">HINT</span>
+          </button>
+          <button id="btn-restart-game-direct" class="btn-3d">
+            <span class="btn-3d-icon">🔄</span>
+            <span class="btn-3d-label">RESTART</span>
+          </button>
+          <button id="btn-colorblind" class="btn-3d">
+            <span class="btn-3d-icon">🏁</span>
+            <span class="btn-3d-label">COLOR AID</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ================= SHOP SCREEN ================= -->
+      <div id="shop-screen" class="screen">
+        <div class="screen-header">
+          <button id="btn-shop-back" class="btn btn-icon">◀</button>
+          <h2>Power Garage</h2>
+        </div>
+        <div class="shop-balance">
+          Available Power: 🔋 <span id="shop-tokens-count">0</span>
+        </div>
+        <div class="shop-items-container">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <!-- ================= PAUSE OVERLAY ================= -->
+      <div id="pause-overlay" class="overlay">
+        <div class="overlay-card">
+          <h2 class="overlay-title">PAUSED</h2>
+          <p class="overlay-subtitle">Polyline vectors frozen. System paused.</p>
+          <div class="overlay-actions">
+            <button id="btn-resume-game" class="btn btn-primary">Resume</button>
+            <button id="btn-restart-game" class="btn btn-secondary">Restart</button>
+            <button id="btn-exit-game" class="btn btn-danger">Exit</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- ================= GAME OVER OVERLAY ================= -->
+      <div id="gameover-overlay" class="overlay">
+        <div class="overlay-card">
+          <div class="success-icon" style="color: #ab364f;">💔</div>
+          <h2 class="overlay-title">SYSTEM FAILURE</h2>
+          <p class="overlay-subtitle">All structural hearts lost. Connection failed.</p>
+          <div class="overlay-actions">
+            <button id="btn-retry-level" class="btn btn-primary">Try Again</button>
+            <button id="btn-gameover-menu" class="btn btn-danger">Exit</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= DEADLOCK OVERLAY ================= -->
+      <div id="deadlock-overlay" class="overlay">
+        <div class="overlay-card">
+          <div class="success-icon" style="color: #e59a3f;">⚠️</div>
+          <h2 class="overlay-title">LEVEL BLOCKED</h2>
+          <p class="overlay-subtitle">No escape route remains! All paths intersect.</p>
+          <div class="overlay-actions">
+            <button id="btn-deadlock-retry" class="btn btn-primary">Try Again</button>
+            <button id="btn-deadlock-menu" class="btn btn-danger">Exit</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= VICTORY OVERLAY ================= -->
+      <div id="victory-overlay" class="overlay">
+        <div class="overlay-card">
+          <div class="success-icon">🌀</div>
+          <h2 class="overlay-title">SECTOR CLEAR</h2>
+          <p class="overlay-subtitle">All winding polylines successfully escaped!</p>
+          <div class="victory-stats">
+            <div>Bonus Power: 🔋 <span id="victory-tokens-earned">0</span></div>
+          </div>
+          <div class="overlay-actions">
+            <button id="btn-next-level" class="btn btn-primary">Next Sector</button>
+            <button id="btn-victory-retry" class="btn btn-secondary">Replay</button>
+            <button id="btn-victory-menu" class="btn btn-danger">Exit</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= TUTORIAL OVERLAY ================= -->
+      <div id="tutorial-overlay" class="overlay">
+        <div class="overlay-card" style="max-width: 340px;">
+          <div class="success-icon" style="color: #3b82f6; font-size: 2.2rem; margin-bottom: 12px;">🚆</div>
+          <h2 class="overlay-title">Train Sector</h2>
+          <p class="overlay-subtitle" style="text-align: left; font-size: 0.85rem; margin-bottom: 20px; line-height: 1.5; color: #57534e;">
+            A high-speed train with three colored carriages (<strong>Red</strong>, <strong>Blue</strong>, <strong>Green</strong>) is circling the border.<br><br>
+            <strong>Rules of the Track:</strong><br>
+            • Launch arrows so they exit the board exactly when the <strong>matching colored carriage</strong> is passing their exit gate.<br>
+            • Missed or wrong color matches will cause the arrow to crash and rebound!<br>
+            • Use the <strong>-</strong> and <strong>+</strong> speed buttons under your hearts HUD to adjust the train's speed to perfectly time your shots.
+          </p>
+          <div class="overlay-actions">
+            <button id="btn-tutorial-close" class="btn btn-primary">Start Level</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="src/js/levels.js?v=58"></script>
+  <script src="src/js/game.js?v=58"></script>
+  <script src="src/js/main.js?v=58"></script>
+</body>
+</html>
