@@ -224,7 +224,7 @@ const ArrowGame = {
     const speedRow = document.getElementById('train-speed-control-row');
     const hudSpeedText = document.getElementById('hud-train-speed');
     if (speedRow) {
-      speedRow.style.display = (lvlData.id === 10 || lvlData.id === 20) ? 'flex' : 'none';
+      speedRow.style.display = (lvlData.id === 10 || lvlData.id === 20 || lvlData.id === 30) ? 'flex' : 'none';
     }
     if (hudSpeedText) {
       hudSpeedText.textContent = '1.0x';
@@ -360,7 +360,14 @@ const ArrowGame = {
     const offsetY = GRID_COORDS.offsetY;
 
     // Get the head point of the moving arrow at this progress
-    const headDist = progress + (28 * movingArrow.strokeWidth);
+    let movingArrowLength = 28 * movingArrow.strokeWidth;
+    if (this.level && this.level.id >= 21 && this.level.id <= 30) {
+      if (!movingArrow.initialLength) {
+        movingArrow.initialLength = this.getPathLength(this.generateSmoothPath(movingArrow.path));
+      }
+      movingArrowLength = movingArrow.initialLength;
+    }
+    const headDist = progress + movingArrowLength;
     const pts = this.getPointsAlongPath(movingArrow.smoothPath, progress, headDist);
     if (pts.length === 0) return false;
     const headPt = pts[pts.length - 1];
@@ -380,19 +387,38 @@ const ArrowGame = {
     let hitArrow = false;
     const speedVal = movingArrow.currentSpeed || movingArrow.speed || 8;
     const prevProgress = Math.max(0, progress - speedVal);
-    const prevHeadDist = prevProgress + (28 * movingArrow.strokeWidth);
+    const prevHeadDist = prevProgress + movingArrowLength;
     const prevPts = this.getPointsAlongPath(movingArrow.smoothPath, prevProgress, prevHeadDist);
     const prevHeadPt = prevPts.length > 0 ? prevPts[prevPts.length - 1] : headPt;
 
     this.arrows.forEach(other => {
+      let shouldCheck = false;
       if (other.id !== movingArrow.id && other.status !== 'ESCAPED') {
+        if (other.status !== 'ESCAPING') {
+          shouldCheck = true;
+        } else if (this.level && this.level.id >= 21 && this.level.id <= 30) {
+          // In levels 21-30, escaping arrows are massive snakes and MUST act as physical blockers!
+          shouldCheck = true;
+        }
+      }
+
+      if (shouldCheck) {
         if (movingArrow.ghost && other.color === "#3a69a4") return;
         if (other.ghost && movingArrow.color === "#3a69a4") return;
 
         if (other.status === 'IDLE') {
-          // Blocker is stationary: check its entire path
-          for (let i = 0; i < other.smoothPath.length - 1; i++) {
-            const d = this.getMinDistanceBetweenSegments(prevHeadPt, headPt, other.smoothPath[i], other.smoothPath[i+1]);
+          // Blocker is stationary: check ONLY its physical visible body, not the entire invisible future path!
+          // For idle arrows, their visible body is from distance 0 to 38 * strokeWidth (or initialLength if we made it long).
+          let arrowLength = 38 * other.strokeWidth;
+          if (this.level && this.level.id >= 21 && this.level.id <= 30) {
+            if (!other.initialLength) {
+              other.initialLength = this.getPathLength(this.generateSmoothPath(other.path));
+            }
+            arrowLength = other.initialLength; 
+          }
+          const otherPts = this.getPointsAlongPath(other.smoothPath, 0, arrowLength);
+          for (let i = 0; i < otherPts.length - 1; i++) {
+            const d = this.getMinDistanceBetweenSegments(prevHeadPt, headPt, otherPts[i], otherPts[i+1]);
             const threshold = 4.5 * (movingArrow.strokeWidth + other.strokeWidth);
             if (d < threshold) {
               hitArrow = true;
@@ -400,7 +426,21 @@ const ArrowGame = {
           }
         } else {
           // Blocker is also moving: check its currently occupied path segment
-          const otherPts = this.getPointsAlongPath(other.smoothPath, other.progress, other.progress + 28 * other.strokeWidth);
+          const otherTotalLen = this.getPathLength(other.smoothPath);
+          if (other.progress >= otherTotalLen) {
+            // Arrow has reached the exit and is sliding off screen.
+            // Ignore collision to prevent bouncing off the "animation effect"
+            return; // Acts as continue in forEach
+          }
+          
+          let arrowLength = 38 * other.strokeWidth;
+          if (this.level && this.level.id >= 21 && this.level.id <= 30) {
+            if (!other.initialLength) {
+              other.initialLength = this.getPathLength(this.generateSmoothPath(other.path));
+            }
+            arrowLength = other.initialLength;
+          }
+          const otherPts = this.getPointsAlongPath(other.smoothPath, other.progress, other.progress + arrowLength);
           for (let i = 0; i < otherPts.length - 1; i++) {
             const d = this.getMinDistanceBetweenSegments(prevHeadPt, headPt, otherPts[i], otherPts[i+1]);
             const threshold = 4.5 * (movingArrow.strokeWidth + other.strokeWidth);
@@ -482,7 +522,8 @@ const ArrowGame = {
       smoothPath: tpSmooth,
       ghost: movingArrow.ghost,
       speed: movingArrow.speed,
-      currentSpeed: movingArrow.speed
+      currentSpeed: movingArrow.speed,
+      initialLength: movingArrow.initialLength
     };
 
     // Trace path and step to find if there is a collision
@@ -548,7 +589,8 @@ const ArrowGame = {
             progress: 0,
             currentSpeed: movingArrow.speed,
             squeezeFactor: 1.0,
-            bumpTime: 0
+            bumpTime: 0,
+            initialLength: movingArrow.initialLength
           };
 
           // Pre-calculate collision for child
@@ -819,7 +861,7 @@ const ArrowGame = {
 
     // Update continuous perimeter cart glide positions
     if (this.carts) {
-      if (this.level && (this.level.id === 10 || this.level.id === 20)) {
+      if (this.level && (this.level.id === 10 || this.level.id === 20 || this.level.id === 30)) {
         this.trainPos = (this.trainPos + 0.035 * (this.trainSpeedMultiplier || 1.0)) % 48;
         
         // Spawn smoke particles at the locomotive chimney (approx 1.5 slots behind the head trainPos)
@@ -907,7 +949,7 @@ const ArrowGame = {
         }
 
         // Perimeter Carts matching check when reaching grid boundary
-        if (a.progress >= totalPathLen && (this.carts.length > 0 || (this.level && (this.level.id === 10 || this.level.id === 20))) && !a.checkedCart) {
+        if (a.progress >= totalPathLen && (this.carts.length > 0 || (this.level && (this.level.id === 10 || this.level.id === 20 || this.level.id === 30))) && !a.checkedCart) {
           a.checkedCart = true;
           const lastPt = a.smoothPath[a.smoothPath.length - 1];
           const prevPt = a.smoothPath[a.smoothPath.length - 2] || a.smoothPath[0];
@@ -921,7 +963,7 @@ const ArrowGame = {
 
           const exitPos = this.getPerimeterPosFromExit(dir, finalCol, finalRow);
           let match = false;
-          if (this.level && (this.level.id === 10 || this.level.id === 20)) {
+          if (this.level && (this.level.id === 10 || this.level.id === 20 || this.level.id === 30)) {
             const trainPos = this.trainPos;
             let start = 0, end = 0;
             if (a.color === "#ab364f") { // Red
@@ -955,7 +997,12 @@ const ArrowGame = {
           }
         }
 
+        if (a.progress >= totalPathLen && a.status === 'MOVING') {
+          a.status = 'ESCAPING';
+        }
+
         // If it goes past total path length, it continues off-screen along final vector
+
         if (a.progress > totalPathLen + 150) {
           a.status = 'ESCAPED';
           const head = a.path[a.path.length - 1];
@@ -1205,7 +1252,7 @@ const ArrowGame = {
     }
 
     // Draw continuous perimeter guide track (if level has carts)
-    if ((this.carts && this.carts.length > 0) || (this.level && (this.level.id === 10 || this.level.id === 20))) {
+    if ((this.carts && this.carts.length > 0) || (this.level && (this.level.id === 10 || this.level.id === 20 || this.level.id === 30))) {
       this.ctx.save();
       this.ctx.strokeStyle = '#e5dfcf';
       this.ctx.lineWidth = 20;
@@ -1266,7 +1313,7 @@ const ArrowGame = {
 
     // Draw Perimeter Carts
     if (this.carts) {
-      if (this.level && (this.level.id === 10 || this.level.id === 20)) {
+      if (this.level && (this.level.id === 10 || this.level.id === 20 || this.level.id === 30)) {
         const trainPos = this.trainPos;
         
         // Draw linkages
@@ -1499,11 +1546,13 @@ const ArrowGame = {
       this.ctx.shadowBlur = 0;
       this.ctx.shadowOffsetY = 0;
 
-      // Draw inner core line
-      this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
-      this.ctx.lineWidth = 1.0 * a.strokeWidth;
-      this.drawPolylinePath(a);
-      this.ctx.stroke();
+      // Draw inner core line only for regular short arrows
+      if (!this.level || this.level.id < 21 || this.level.id > 30) {
+        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
+        this.ctx.lineWidth = 1.0 * a.strokeWidth;
+        this.drawPolylinePath(a);
+        this.ctx.stroke();
+      }
 
       // Draw arrow head at final direction segment
       this.drawArrowHead(a);
@@ -1615,7 +1664,15 @@ const ArrowGame = {
 
   drawPolylinePath(a) {
     const startDist = (a.status === 'ESCAPING' || a.status === 'REBOUNDING' || a.status === 'COLLIDED') ? a.progress : 0;
-    const endDist = startDist + (38 * a.strokeWidth);
+    const totalLen = this.getPathLength(a.smoothPath);
+    let arrowLength = 38 * a.strokeWidth;
+    if (this.level && this.level.id >= 21 && this.level.id <= 30) {
+      if (!a.initialLength) {
+        a.initialLength = this.getPathLength(this.generateSmoothPath(a.path));
+      }
+      arrowLength = a.initialLength;
+    }
+    const endDist = startDist + arrowLength;
     
     const pts = this.getPointsAlongPath(a.smoothPath, startDist, endDist);
     if (pts.length > 0) {
@@ -1635,7 +1692,15 @@ const ArrowGame = {
 
   drawArrowHead(a) {
     const startDist = (a.status === 'ESCAPING' || a.status === 'REBOUNDING' || a.status === 'COLLIDED') ? a.progress : 0;
-    const endDist = startDist + (38 * a.strokeWidth);
+    const totalLen = this.getPathLength(a.smoothPath);
+    let arrowLength = 38 * a.strokeWidth;
+    if (this.level && this.level.id >= 21 && this.level.id <= 30) {
+      if (!a.initialLength) {
+        a.initialLength = this.getPathLength(this.generateSmoothPath(a.path));
+      }
+      arrowLength = a.initialLength;
+    }
+    const endDist = startDist + arrowLength;
 
     const pts = this.getPointsAlongPath(a.smoothPath, startDist, endDist);
     if (pts.length < 2) return;

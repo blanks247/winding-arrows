@@ -517,7 +517,7 @@ function generateProceduralLevel(levelId) {
   const gates = [];
   const arrows = [];
   
-  const theme = (levelId === 10 || levelId === 20) ? 1 : 0; // Train level starting at level 10
+  const theme = (levelId === 10 || levelId === 20 || levelId === 30) ? 1 : 0; // Train level starting at level 10
   const minBound = theme === 1 ? 1 : 0;
   const maxBound = theme === 1 ? 11 : 12;
 
@@ -848,7 +848,190 @@ function distToSegmentSim(p, s1, s2) {
   return Math.hypot(p.x - (s1.x + t * (s2.x - s1.x)), p.y - (s1.y + t * (s2.y - s1.y)));
 }
 
+
+
+
+function generateMazeProceduralLevel(levelId) {
+  const rand = SeededRandom(levelId * 45 + 9812);
+  const colorPool = ["#ab364f", "#3a69a4", "#5e9554", "#1e1b18"];
+  const gates = [];
+  const arrows = [];
+  
+  const theme = levelId === 30 ? 1 : 0; // Train level
+  const minBound = theme === 1 ? 1 : 0;
+  const maxBound = theme === 1 ? 11 : 12;
+
+  let attempts = 0;
+  let success = false;
+  
+  const occupiedNodes = new Set();
+  let targetNumArrows = 12; // Start with 12 arrows
+
+  while (!success && attempts < 150) {
+    attempts++;
+    arrows.length = 0;
+    occupiedNodes.clear();
+    
+    for (let i = 0; i < targetNumArrows; i++) {
+      let pathPlaced = false;
+      let pathAttempts = 0;
+      
+      while (!pathPlaced && pathAttempts < 100) { // Try 100 times to fit an arrow!
+        pathAttempts++;
+        const path = [];
+        
+        let c = Math.floor(rand() * (maxBound - minBound + 1)) + minBound;
+        let r = Math.floor(rand() * (maxBound - minBound + 1)) + minBound;
+        
+        if (occupiedNodes.has(`${c},${r}`)) continue;
+        
+        path.push({ col: c, row: r });
+        let currentDir = ["U", "D", "L", "R"][Math.floor(rand() * 4)];
+        let pathDeadEnd = false;
+        
+        while (!pathDeadEnd && path.length < 15) { // Max length 15
+          let head = path[path.length - 1];
+          let possibleDirs = [];
+          
+          for (let dir of ["U", "D", "L", "R"]) {
+            if (currentDir === "U" && dir === "D") continue;
+            if (currentDir === "D" && dir === "U") continue;
+            if (currentDir === "L" && dir === "R") continue;
+            if (currentDir === "R" && dir === "L") continue;
+            
+            let tc = head.col;
+            let tr = head.row;
+            if (dir === "U") tr -= 1;
+            if (dir === "D") tr += 1;
+            if (dir === "L") tc -= 1;
+            if (dir === "R") tc += 1;
+            
+            if (tc >= minBound && tc <= maxBound && tr >= minBound && tr <= maxBound && !occupiedNodes.has(`${tc},${tr}`)) {
+              // The new node cannot be in the path already.
+              // Additionally, to prevent the arrow from touching itself side-by-side,
+              // the new node must NOT be adjacent to any existing node in the path (except the current head).
+              let touchesSelf = false;
+              for (let i = 0; i < path.length - 2; i++) { // Ignore head AND the node right before head
+                const p = path[i];
+                if (Math.abs(p.col - tc) <= 1 && Math.abs(p.row - tr) <= 1) {
+                   touchesSelf = true;
+                   break;
+                }
+              }
+              if (!touchesSelf && !path.some(p => p.col === tc && p.row === tr)) {
+                possibleDirs.push(dir);
+              }
+            }
+          }
+          
+          if (possibleDirs.length === 0) {
+            pathDeadEnd = true;
+          } else {
+            let nextDir = possibleDirs[0];
+            // 70% chance to go straight to create long segments
+            if (possibleDirs.includes(currentDir) && rand() > 0.3) {
+              nextDir = currentDir;
+            } else {
+              nextDir = possibleDirs[Math.floor(rand() * possibleDirs.length)];
+            }
+            
+            currentDir = nextDir;
+            let tc = head.col;
+            let tr = head.row;
+            if (currentDir === "U") tr -= 1;
+            if (currentDir === "D") tr += 1;
+            if (currentDir === "L") tc -= 1;
+            if (currentDir === "R") tc += 1;
+            
+            path.push({ col: tc, row: tr });
+          }
+        }
+        
+        // ACCEPT paths that are between 4 and 15 nodes long
+        if (path.length >= 4) {
+          // Do NOT reverse path, so the head is at the end of the random walk (usually pointing to open space/boundary)
+          // This drastically reduces deadlocks!
+          const color = colorPool[Math.floor(rand() * colorPool.length)];
+          const tempArrow = {
+            id: `maze-a${i}`,
+            color,
+            strokeWidth: 1.0,
+            speed: 8,
+            path: path.map(p => getAbsCoords(p.col, p.row)),
+            status: "IDLE"
+          };
+          
+          arrows.push(tempArrow);
+          if (checkSeededLevelSolvability(arrows, gates)) {
+            path.forEach(p => occupiedNodes.add(`${p.col},${p.row}`));
+            pathPlaced = true;
+          } else {
+            arrows.pop();
+          }
+        }
+      }
+    }
+    
+    // Add theme obstacles
+    let carts = [];
+    if (theme === 1 && arrows.length > 2) {
+      const cartColors = ["#ab364f", "#3a69a4", "#5e9554", "#1e1b18"];
+      const numCarts = 2 + Math.floor(rand() * 2);
+      const usedPos = new Set();
+      for (let c = 0; c < numCarts; c++) {
+        let cp = Math.floor(rand() * 48);
+        while (usedPos.has(cp)) { cp = Math.floor(rand() * 48); }
+        usedPos.add(cp);
+        carts.push({ pos: cp, color: cartColors[c % cartColors.length] });
+      }
+    }
+
+    if (arrows.length >= 6) { 
+      success = checkSeededLevelSolvability(arrows, gates);
+    }
+    
+    if (!success) {
+      if (attempts % 10 === 0 && targetNumArrows > 6) targetNumArrows--;
+    } else {
+       return {
+        id: levelId,
+        name: `Maze Sector ${levelId}`,
+        gates,
+        carts,
+        reflectors: [],
+        splitters: [],
+        crumblingTiles: [],
+        switches: [],
+        laserBarriers: [],
+        timedGates: [],
+        portals: [],
+        arrows
+      };
+    }
+  }
+  
+  return {
+    id: levelId,
+    name: `Maze Sector ${levelId}`,
+    gates,
+    carts: [],
+    reflectors: [],
+    splitters: [],
+    crumblingTiles: [],
+    switches: [],
+    laserBarriers: [],
+    timedGates: [],
+    portals: [],
+    arrows
+  };
+}
+
+
+
 // Master Level Retriever
 function getLevel(levelId) {
+  if (levelId > 20 && levelId <= 30) {
+    return generateMazeProceduralLevel(levelId);
+  }
   return generateProceduralLevel(levelId);
 }

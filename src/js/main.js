@@ -115,12 +115,12 @@ const App = {
       document.getElementById('victory-overlay').classList.remove('active');
       
       const nextId = ArrowGame.level.id + 1;
-      if (nextId <= 20) {
+      if (nextId <= 30) {
         const nextData = getLevel(nextId);
         ArrowGame.startLevel(nextData);
         this.updateGlobalHUD();
       } else {
-        alert("🎉 INCREDIBLE! You have unlocked and escaped all 20 polyline sectors!");
+        alert("🎉 INCREDIBLE! You have unlocked and escaped all 30 polyline sectors!");
         this.showScreen('level-select-screen');
         this.renderLevelSelect();
       }
@@ -170,34 +170,44 @@ const App = {
     const grid = document.getElementById('levels-grid');
     grid.innerHTML = '';
 
-    // Winding coordinates for Candy Crush Saga Map (connecting 20 levels)
-    const coords = [
-      { x: 180, y: 1400 }, // Level 1 (bottom center)
-      { x: 90,  y: 1330 }, // Level 2
-      { x: 126, y: 1260 }, // Level 3
-      { x: 270, y: 1190 }, // Level 4
-      { x: 180, y: 1120 }, // Level 5
-      { x: 72,  y: 1050 }, // Level 6
-      { x: 162, y: 980 },  // Level 7
-      { x: 288, y: 910 },  // Level 8
-      { x: 198, y: 840 },  // Level 9
-      { x: 108, y: 770 },  // Level 10
-      { x: 180, y: 700 },  // Level 11
-      { x: 250, y: 630 },  // Level 12
-      { x: 200, y: 560 },  // Level 13
-      { x: 90,  y: 490 },  // Level 14
-      { x: 180, y: 420 },  // Level 15
-      { x: 270, y: 350 },  // Level 16
-      { x: 150, y: 280 },  // Level 17
-      { x: 80,  y: 210 },  // Level 18
-      { x: 180, y: 140 },  // Level 19
-      { x: 270, y: 70 }    // Level 20 (top)
+    // Winding coordinates for Candy Crush Saga Map (connecting 30 levels)
+        const coords = [
+      { x: 180, y: 2100 }, // Level 1 (bottom center)
+      { x: 90,  y: 2030 }, // Level 2
+      { x: 126, y: 1960 }, // Level 3
+      { x: 270, y: 1890 }, // Level 4
+      { x: 180, y: 1820 }, // Level 5
+      { x: 72,  y: 1750 }, // Level 6
+      { x: 162, y: 1680 }, // Level 7
+      { x: 288, y: 1610 }, // Level 8
+      { x: 198, y: 1540 }, // Level 9
+      { x: 108, y: 1470 }, // Level 10
+      { x: 180, y: 1400 }, // Level 11
+      { x: 250, y: 1330 }, // Level 12
+      { x: 200, y: 1260 }, // Level 13
+      { x: 90,  y: 1190 }, // Level 14
+      { x: 180, y: 1120 }, // Level 15
+      { x: 270, y: 1050 }, // Level 16
+      { x: 150, y: 980 },  // Level 17
+      { x: 80,  y: 910 },  // Level 18
+      { x: 180, y: 840 },  // Level 19
+      { x: 270, y: 770 },  // Level 20
+      { x: 180, y: 700 },  // Level 21
+      { x: 90,  y: 630 },  // Level 22
+      { x: 126, y: 560 },  // Level 23
+      { x: 270, y: 490 },  // Level 24
+      { x: 180, y: 420 },  // Level 25
+      { x: 72,  y: 350 },  // Level 26
+      { x: 162, y: 280 },  // Level 27
+      { x: 288, y: 210 },  // Level 28
+      { x: 198, y: 140 },  // Level 29
+      { x: 108, y: 70 }    // Level 30 (top)
     ];
 
     // Create SVG overlay to draw curvy path line
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.setAttribute("class", "saga-path-svg");
-    svg.setAttribute("viewBox", "0 0 360 1460");
+    svg.setAttribute("viewBox", "0 0 360 2160");
 
     let dStr = `M ${coords[0].x} ${coords[0].y}`;
     for (let i = 1; i < coords.length; i++) {
@@ -218,7 +228,7 @@ const App = {
     grid.appendChild(svg);
 
     // Create level selector badges
-    for (let id = 1; id <= 20; id++) {
+    for (let id = 1; id <= 30; id++) {
       const coord = coords[id - 1];
       const card = document.createElement('div');
       card.className = 'level-card';
