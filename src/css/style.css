@@ -219,17 +219,39 @@ body {
   font-size: 1.1rem;
 }
 
-.levels-grid {
-  position: relative;
+.levels-scroll-area {
   width: 100%;
   height: calc(100% - 60px);
   overflow-y: auto;
-  background: radial-gradient(circle, #f7f1e1 15%, transparent 15%),
-              radial-gradient(circle, #f7f1e1 15%, transparent 15%),
-              #eae0c8;
-  background-size: 20px 20px;
-  background-position: 0 0, 10px 10px;
-  border-radius: 18px;
+  border-radius: 24px;
+  box-shadow: inset 0 8px 24px rgba(0,0,0,0.04), 0 12px 36px rgba(0,0,0,0.08);
+  scrollbar-width: none; /* Firefox */
+}
+
+.levels-scroll-area::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+
+.levels-grid {
+  position: relative;
+  width: 100%;
+  /* Dynamic height will be set by main.js based on total level count */
+  min-height: 100%;
+  overflow: hidden;
+  /* Ultra-cute Cotton Candy Dreamscape transition */
+  background: linear-gradient(
+    180deg,
+    #ffcbf2 0%,       /* Soft baby pink */
+    #f3c4fb 15%,      /* Pastel lilac */
+    #e2c6ff 25%,      /* Soft violet */
+    #bde0fe 40%,      /* Baby blue sky */
+    #a2d2ff 55%,      /* Clear pastel blue */
+    #b9fbc0 75%,      /* Minty green */
+    #ffd6a5 90%,      /* Soft peach/orange */
+    #fdffb6 100%      /* Creamy yellow */
+  );
+  border-radius: 24px;
+  box-shadow: inset 0 8px 24px rgba(0,0,0,0.1), 0 12px 36px rgba(0,0,0,0.08);
   padding: 0;
   box-sizing: border-box;
 }
@@ -239,26 +261,96 @@ body {
   top: 0;
   left: 0;
   width: 100%;
-  height: 2160px;
+  height: 100%;
   pointer-events: none;
+  z-index: 1;
+}
+
+.saga-path-svg path {
+  stroke: rgba(255, 255, 255, 0.4);
+  stroke-width: 6;
+  stroke-dasharray: none;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.8));
+  animation: none;
+}
+
+.saga-path-svg path.path-dash {
+  stroke: #ffffff;
+  stroke-width: 8;
+  stroke-linecap: round;
+  stroke-dasharray: 0 32; /* Sequence of magical floating dots */
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 1));
+  animation: dash-scroll 40s linear infinite;
+}
+
+@keyframes dash-scroll {
+  to { stroke-dashoffset: -1000; }
+}
+
+/* Subtle distant birds */
+.nature-bird {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  /* Classic distant 'V' bird silhouette, dark slate color so it contrasts with pastel sky */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 12 Q 7 8 12 12 Q 17 8 22 12' opacity='0.75'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  pointer-events: none;
+  z-index: 1;
+  animation: fly-across 25s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes fly-across {
+  0% { transform: translate(-100px, 20px) scale(0.6) rotate(-5deg); opacity: 0; }
+  10% { opacity: 0.9; }
+  90% { opacity: 0.9; }
+  100% { transform: translate(400px, -40px) scale(1) rotate(5deg); opacity: 0; }
+}
+
+/* Subtle atmospheric clouds */
+.nature-cloud {
+  position: absolute;
+  /* Simple, soft cloud shape without facial features */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 60'%3E%3Cpath d='M25,50 A20,20 0 0,1 25,10 A30,30 0 0,1 75,15 A20,20 0 0,1 75,50 Z' fill='%23ffffff' opacity='0.3'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  filter: blur(2px);
+  pointer-events: none;
+  animation: float-cloud 60s linear infinite;
+  z-index: 0;
+  background-color: transparent !important;
+  border-radius: 0 !important;
+}
+.nature-cloud::before, .nature-cloud::after {
+  display: none !important;
+}
+.nature-cloud.small { width: 120px; height: 72px; }
+.nature-cloud.large { width: 180px; height: 108px; }
+
+@keyframes float-cloud {
+  0% { transform: translateX(-200px); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateX(500px); opacity: 0; }
 }
 
 .level-card {
   position: absolute;
-  width: 50px;
-  height: 50px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, #ffd066, #ff9d00);
-  border: 3px solid #ffffff;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   cursor: pointer;
   transform: translate(-50%, -50%);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.15), inset 0 -4px 6px rgba(0,0,0,0.2);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   z-index: 2;
+  backdrop-filter: blur(8px);
 }
 
 .level-card:active {
@@ -266,43 +358,55 @@ body {
 }
 
 .level-card.locked {
-  background: radial-gradient(circle at 30% 30%, #cfcfcf, #8c8c8c);
-  border-color: #e3e3e3;
-  opacity: 0.9;
+  background: rgba(255, 255, 255, 0.7);
+  border: 2px solid rgba(0,0,0,0.06);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
   cursor: not-allowed;
-  box-shadow: 0 3px 5px rgba(0,0,0,0.1), inset 0 -3px 5px rgba(0,0,0,0.2);
+}
+
+.level-card.locked .level-num {
+  color: rgba(0,0,0,0.25);
+  text-shadow: none;
+}
+
+.level-card.locked .level-stars {
+  filter: grayscale(1) opacity(0.3);
 }
 
 .level-card.cleared {
-  background: radial-gradient(circle at 30% 30%, #5eead4, #0d9488);
-  border-color: #ffffff;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.15), inset 0 -4px 6px rgba(0,0,0,0.2), 0 0 10px rgba(94, 234, 212, 0.4);
+  background: linear-gradient(135deg, #ffb3c6, #ff8fab);
+  border: 3px solid #ffffff;
+  box-shadow: 0 8px 16px rgba(255, 143, 171, 0.4), inset 0 -4px 8px rgba(0,0,0,0.1);
 }
 
 .level-card.active-unlocked {
-  background: radial-gradient(circle at 30% 30%, #60a5fa, #2563eb);
-  border-color: #ffffff;
-  box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3), inset 0 -4px 6px rgba(0,0,0,0.2);
-  animation: saga-bounce 1.5s infinite alternate;
+  background: linear-gradient(135deg, #a0c4ff, #9bf6ff);
+  border: 4px solid #ffffff;
+  width: 72px; /* Much larger to stand out */
+  height: 72px;
+  box-shadow: 0 10px 20px rgba(155, 246, 255, 0.6), inset 0 -4px 8px rgba(0,0,0,0.15);
+  animation: pulse-ring-active 2s infinite cubic-bezier(0.455, 0.03, 0.515, 0.955);
+  z-index: 5; /* Ensure it floats above others */
 }
 
-@keyframes saga-bounce {
-  0% { transform: translate(-50%, -50%) scale(1.0); }
-  100% { transform: translate(-50%, -50%) scale(1.12); }
+@keyframes pulse-ring-active {
+  0% { transform: translate(-50%, -50%) scale(1); box-shadow: 0 10px 20px rgba(155, 246, 255, 0.6), inset 0 -4px 8px rgba(0,0,0,0.15), 0 0 0 0 rgba(155, 246, 255, 0.6); }
+  50% { transform: translate(-50%, -50%) scale(1.1); box-shadow: 0 15px 30px rgba(155, 246, 255, 0.7), inset 0 -4px 8px rgba(0,0,0,0.15), 0 0 0 16px rgba(155, 246, 255, 0); }
+  100% { transform: translate(-50%, -50%) scale(1); box-shadow: 0 10px 20px rgba(155, 246, 255, 0.6), inset 0 -4px 8px rgba(0,0,0,0.15), 0 0 0 0 rgba(155, 246, 255, 0); }
 }
 
 .level-num {
   color: #ffffff;
-  font-size: 1.2rem;
-  font-weight: 900;
-  text-shadow: 0 1.5px 3px rgba(0,0,0,0.4);
+  font-size: 1.5rem; /* Slightly larger since there are no stars */
+  font-weight: 800;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
 
 .level-stars {
-  font-size: 0.6rem;
-  color: #ffd066;
+  font-size: 0.65rem;
+  color: #ffffff;
   margin-top: -2px;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 
 .gameplay-header-row {

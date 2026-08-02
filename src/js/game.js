@@ -361,7 +361,7 @@ const ArrowGame = {
 
     // Get the head point of the moving arrow at this progress
     let movingArrowLength = 28 * movingArrow.strokeWidth;
-    if (this.level && this.level.id >= 21 && this.level.id <= 30) {
+    if (this.level && this.level.isMaze) {
       if (!movingArrow.initialLength) {
         movingArrow.initialLength = this.getPathLength(this.generateSmoothPath(movingArrow.path));
       }
@@ -396,8 +396,8 @@ const ArrowGame = {
       if (other.id !== movingArrow.id && other.status !== 'ESCAPED') {
         if (other.status !== 'ESCAPING') {
           shouldCheck = true;
-        } else if (this.level && this.level.id >= 21 && this.level.id <= 30) {
-          // In levels 21-30, escaping arrows are massive snakes and MUST act as physical blockers!
+        } else if (this.level && this.level.isMaze) {
+          // In maze levels, escaping arrows are massive snakes and MUST act as physical blockers!
           shouldCheck = true;
         }
       }
@@ -410,7 +410,7 @@ const ArrowGame = {
           // Blocker is stationary: check ONLY its physical visible body, not the entire invisible future path!
           // For idle arrows, their visible body is from distance 0 to 38 * strokeWidth (or initialLength if we made it long).
           let arrowLength = 38 * other.strokeWidth;
-          if (this.level && this.level.id >= 21 && this.level.id <= 30) {
+          if (this.level && this.level.isMaze) {
             if (!other.initialLength) {
               other.initialLength = this.getPathLength(this.generateSmoothPath(other.path));
             }
@@ -434,7 +434,7 @@ const ArrowGame = {
           }
           
           let arrowLength = 38 * other.strokeWidth;
-          if (this.level && this.level.id >= 21 && this.level.id <= 30) {
+          if (this.level && this.level.isMaze) {
             if (!other.initialLength) {
               other.initialLength = this.getPathLength(this.generateSmoothPath(other.path));
             }
@@ -1547,7 +1547,7 @@ const ArrowGame = {
       this.ctx.shadowOffsetY = 0;
 
       // Draw inner core line only for regular short arrows
-      if (!this.level || this.level.id < 21 || this.level.id > 30) {
+      if (!this.level || !this.level.isMaze) {
         this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
         this.ctx.lineWidth = 1.0 * a.strokeWidth;
         this.drawPolylinePath(a);
@@ -1666,7 +1666,7 @@ const ArrowGame = {
     const startDist = (a.status === 'ESCAPING' || a.status === 'REBOUNDING' || a.status === 'COLLIDED') ? a.progress : 0;
     const totalLen = this.getPathLength(a.smoothPath);
     let arrowLength = 38 * a.strokeWidth;
-    if (this.level && this.level.id >= 21 && this.level.id <= 30) {
+    if (this.level && this.level.isMaze) {
       if (!a.initialLength) {
         a.initialLength = this.getPathLength(this.generateSmoothPath(a.path));
       }
@@ -1694,7 +1694,7 @@ const ArrowGame = {
     const startDist = (a.status === 'ESCAPING' || a.status === 'REBOUNDING' || a.status === 'COLLIDED') ? a.progress : 0;
     const totalLen = this.getPathLength(a.smoothPath);
     let arrowLength = 38 * a.strokeWidth;
-    if (this.level && this.level.id >= 21 && this.level.id <= 30) {
+    if (this.level && this.level.isMaze) {
       if (!a.initialLength) {
         a.initialLength = this.getPathLength(this.generateSmoothPath(a.path));
       }

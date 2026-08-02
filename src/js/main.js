@@ -170,44 +170,33 @@ const App = {
     const grid = document.getElementById('levels-grid');
     grid.innerHTML = '';
 
-    // Winding coordinates for Candy Crush Saga Map (connecting 30 levels)
-        const coords = [
-      { x: 180, y: 2100 }, // Level 1 (bottom center)
-      { x: 90,  y: 2030 }, // Level 2
-      { x: 126, y: 1960 }, // Level 3
-      { x: 270, y: 1890 }, // Level 4
-      { x: 180, y: 1820 }, // Level 5
-      { x: 72,  y: 1750 }, // Level 6
-      { x: 162, y: 1680 }, // Level 7
-      { x: 288, y: 1610 }, // Level 8
-      { x: 198, y: 1540 }, // Level 9
-      { x: 108, y: 1470 }, // Level 10
-      { x: 180, y: 1400 }, // Level 11
-      { x: 250, y: 1330 }, // Level 12
-      { x: 200, y: 1260 }, // Level 13
-      { x: 90,  y: 1190 }, // Level 14
-      { x: 180, y: 1120 }, // Level 15
-      { x: 270, y: 1050 }, // Level 16
-      { x: 150, y: 980 },  // Level 17
-      { x: 80,  y: 910 },  // Level 18
-      { x: 180, y: 840 },  // Level 19
-      { x: 270, y: 770 },  // Level 20
-      { x: 180, y: 700 },  // Level 21
-      { x: 90,  y: 630 },  // Level 22
-      { x: 126, y: 560 },  // Level 23
-      { x: 270, y: 490 },  // Level 24
-      { x: 180, y: 420 },  // Level 25
-      { x: 72,  y: 350 },  // Level 26
-      { x: 162, y: 280 },  // Level 27
-      { x: 288, y: 210 },  // Level 28
-      { x: 198, y: 140 },  // Level 29
-      { x: 108, y: 70 }    // Level 30 (top)
-    ];
+    // Scale to 500 levels
+    const TOTAL_LEVELS = 500;
+    const SPACING_Y = 70;
+    const TOTAL_HEIGHT = TOTAL_LEVELS * SPACING_Y + 200; // Extra padding at top/bottom
+
+    // Set the dynamic height of the map container
+    grid.style.height = `${TOTAL_HEIGHT}px`;
+
+    // Algorithmically generate the winding coordinates for 500 levels
+    const coords = [];
+    for (let i = 0; i < TOTAL_LEVELS; i++) {
+      // Sine wave pattern: centers around x=180, swings left and right with amplitude 90
+      // We vary the frequency slightly to make it look organic
+      const organicFrequency = 0.4 + Math.sin(i * 0.1) * 0.1;
+      const x = 180 + Math.sin(i * organicFrequency) * 110; 
+      
+      // Bottom to top
+      const y = TOTAL_HEIGHT - 100 - (i * SPACING_Y);
+      
+      coords.push({ id: i + 1, x, y });
+    }
 
     // Create SVG overlay to draw curvy path line
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.setAttribute("class", "saga-path-svg");
-    svg.setAttribute("viewBox", "0 0 360 2160");
+    svg.setAttribute("viewBox", `0 0 360 ${TOTAL_HEIGHT}`);
+    svg.setAttribute("preserveAspectRatio", "none"); // Force path to stretch with screen width
 
     let dStr = `M ${coords[0].x} ${coords[0].y}`;
     for (let i = 1; i < coords.length; i++) {
@@ -217,23 +206,49 @@ const App = {
       dStr += ` Q ${prev.x} ${cy}, ${curr.x} ${curr.y}`;
     }
 
-    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    path.setAttribute("d", dStr);
-    path.setAttribute("fill", "none");
-    path.setAttribute("stroke", "#ffd066");
-    path.setAttribute("stroke-width", "6");
-    path.setAttribute("stroke-dasharray", "8, 8");
-    path.setAttribute("stroke-linecap", "round");
-    svg.appendChild(path);
+    const pathBase = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    pathBase.setAttribute("d", dStr);
+    pathBase.setAttribute("fill", "none");
+    svg.appendChild(pathBase);
+
+    const pathDash = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    pathDash.setAttribute("d", dStr);
+    pathDash.setAttribute("fill", "none");
+    pathDash.setAttribute("class", "path-dash");
+    svg.appendChild(pathDash);
+
     grid.appendChild(svg);
 
+    // Scale cute nature birds proportionally to map height
+    const numBirds = Math.floor(TOTAL_HEIGHT / 400); 
+    for (let i = 0; i < numBirds; i++) {
+      const bird = document.createElement('div');
+      bird.className = 'nature-bird';
+      bird.style.top = `${100 + (i * 400)}px`;
+      bird.style.animationDelay = `${i * 2.5}s`;
+      bird.style.animationDuration = `${15 + (Math.random() * 10)}s`;
+      grid.appendChild(bird);
+    }
+
+    // Scale dreamy clouds proportionally to map height
+    const numClouds = Math.floor(TOTAL_HEIGHT / 300);
+    for (let i = 0; i < numClouds; i++) {
+      const cloud = document.createElement('div');
+      cloud.className = `nature-cloud ${i % 2 === 0 ? 'large' : 'small'}`;
+      cloud.style.top = `${50 + (i * 300)}px`;
+      cloud.style.animationDelay = `${i * 4}s`;
+      cloud.style.animationDuration = `${40 + (Math.random() * 20)}s`;
+      grid.appendChild(cloud);
+    }
+
     // Create level selector badges
-    for (let id = 1; id <= 30; id++) {
+    for (let id = 1; id <= TOTAL_LEVELS; id++) {
       const coord = coords[id - 1];
       const card = document.createElement('div');
       card.className = 'level-card';
-      card.style.left = `${coord.x}px`;
-      card.style.top = `${coord.y}px`;
+      // Use percentages so cards precisely follow the scaled SVG path on any screen width
+      card.style.left = `${(coord.x / 360) * 100}%`;
+      card.style.top = `${(coord.y / TOTAL_HEIGHT) * 100}%`;
 
       const isFirst = id === 1;
       const isUnlocked = isFirst || this.clearedLevels.includes(id - 1);
@@ -249,14 +264,22 @@ const App = {
 
       if (!isUnlocked) {
         card.innerHTML = `
-          <div class="level-num" style="opacity: 0.5;">${id}</div>
+          <div class="level-num" style="opacity: 0.5; font-size: 1.1rem;">${id}</div>
           <div class="level-stars">🔒</div>
         `;
-      } else {
+      } else if (isCleared) {
         card.innerHTML = `
           <div class="level-num">${id}</div>
-          <div class="level-stars">${isCleared ? "★★★" : "☆☆☆"}</div>
         `;
+      } else {
+        // active-unlocked
+        card.innerHTML = `
+          <div class="level-num" style="font-size: 1.6rem; margin-top: 4px;">${id}</div>
+          <div class="level-stars" style="color: #ffffff; font-weight: bold; font-size: 0.8rem; letter-spacing: 1px;">PLAY</div>
+        `;
+      }
+
+      if (isUnlocked) {
         card.addEventListener('click', () => {
           const lvl = getLevel(id);
           this.showScreen('gameplay-screen');
@@ -266,9 +289,16 @@ const App = {
       grid.appendChild(card);
     }
 
-    // Scroll level selection grid to bottom to center Level 1 initially
+    // Auto-scroll to the current active level
     setTimeout(() => {
-      grid.scrollTop = 760;
+      const activeCard = grid.querySelector('.level-card.active-unlocked');
+      if (activeCard) {
+        activeCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else {
+        // Fallback to bottom if no active level found
+        const scrollArea = document.querySelector('.levels-scroll-area');
+        if (scrollArea) scrollArea.scrollTop = scrollArea.scrollHeight;
+      }
     }, 50);
   },
 

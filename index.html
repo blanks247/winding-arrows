@@ -48,12 +48,14 @@
 
       <!-- ================= LEVEL SELECT SCREEN ================= -->
       <div id="level-select-screen" class="screen">
-        <div class="screen-header">
+        <div class="screen-header" style="z-index: 10;">
           <button id="btn-level-back" class="btn btn-icon">◀</button>
           <h2>Sectors</h2>
         </div>
-        <div id="levels-grid" class="levels-grid">
-          <!-- Populated dynamically via JS -->
+        <div class="levels-scroll-area">
+          <div id="levels-grid" class="levels-grid">
+            <!-- Populated dynamically via JS -->
+          </div>
         </div>
       </div>
 
@@ -198,8 +200,8 @@
     </div>
   </div>
 
-  <script src="src/js/levels.js?v=84"></script>
-  <script src="src/js/game.js?v=84"></script>
-  <script src="src/js/main.js?v=84"></script>
+  <script src="src/js/levels.js?v=102"></script>
+  <script src="src/js/game.js?v=102"></script>
+  <script src="src/js/main.js?v=102"></script>
 </body>
 </html>
