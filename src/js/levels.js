@@ -351,7 +351,7 @@ const HANDCRAFTED_LEVELS = [
         strokeWidth: 1.0,
         speed: 8,
         path: [
-          getAbsCoords(1, 4),
+          getAbsCoords(1, 3),
           getAbsCoords(1, 2),
           getAbsCoords(2, 2)
         ],
@@ -363,7 +363,7 @@ const HANDCRAFTED_LEVELS = [
         strokeWidth: 1.0,
         speed: 8,
         path: [
-          getAbsCoords(3, 0),
+          getAbsCoords(3, 1),
           getAbsCoords(3, 2)
         ],
         status: "IDLE"
@@ -375,14 +375,132 @@ const HANDCRAFTED_LEVELS = [
         speed: 8,
         path: [
           getAbsCoords(2, 3),
-          getAbsCoords(4, 3)
+          getAbsCoords(3, 3)
         ],
         status: "IDLE"
       }
     ]
   }
+,
+  {
+    id: 11,
+    name: "Crossings",
+    gates: [],
+    arrows: [
+      { id: "a1", color: "#ab364f", strokeWidth: 1.0, speed: 8, path: [getAbsCoords(1, 3), getAbsCoords(1, 2)], status: "IDLE" },
+      { id: "a2", color: "#3a69a4", strokeWidth: 1.0, speed: 8, path: [getAbsCoords(3, 1), getAbsCoords(3, 2)], status: "IDLE" }
+    ]
+  },
+  {
+    id: 12,
+    name: "Dual Split",
+    gates: [
+      { edge: "L", index: 2, color: "#e59a3f" },
+      { edge: "R", index: 2, color: "#22d3ee" }
+    ],
+    arrows: [
+      { id: "a1", color: "#1e1b18", strokeWidth: 1.0, speed: 7, path: [getAbsCoords(2, 2), getAbsCoords(2, 1)], status: "IDLE" },
+      { id: "a2", color: "#e59a3f", strokeWidth: 1.0, speed: 7, path: [getAbsCoords(1, 2), getAbsCoords(2, 2)], status: "IDLE" },
+      { id: "a3", color: "#22d3ee", strokeWidth: 1.0, speed: 7, path: [getAbsCoords(3, 2), getAbsCoords(2, 2)], status: "IDLE" }
+    ]
+  },
+  {
+    id: 13,
+    name: "Crossover",
+    gates: [
+      { edge: "U", index: 1, color: "#ab364f" },
+      { edge: "D", index: 3, color: "#3a69a4" }
+    ],
+    arrows: [
+      { id: "a1", color: "#1e1b18", strokeWidth: 1.0, speed: 8, path: [getAbsCoords(1, 3), getAbsCoords(3, 3), getAbsCoords(3, 1)], status: "IDLE" },
+      { id: "a2", color: "#ab364f", strokeWidth: 1.0, speed: 8, path: [getAbsCoords(1, 1), getAbsCoords(1, 2)], status: "IDLE" },
+      { id: "a3", color: "#3a69a4", strokeWidth: 1.0, speed: 8, path: [getAbsCoords(3, 2), getAbsCoords(3, 2)], status: "IDLE" }
+    ]
+  },
+  {
+    id: 14,
+    name: "Tight Corners",
+    gates: [
+      { edge: "R", index: 1, color: "#5e9554" },
+      { edge: "L", index: 3, color: "#e59a3f" }
+    ],
+    arrows: [
+      { id: "a1", color: "#1e1b18", strokeWidth: 1.0, speed: 9, path: [getAbsCoords(2, 2), getAbsCoords(3, 2), getAbsCoords(3, 3)], status: "IDLE" },
+      { id: "a2", color: "#5e9554", strokeWidth: 1.0, speed: 9, path: [getAbsCoords(2, 1), getAbsCoords(3, 1)], status: "IDLE" },
+      { id: "a3", color: "#e59a3f", strokeWidth: 1.0, speed: 9, path: [getAbsCoords(2, 3), getAbsCoords(1, 3)], status: "IDLE" }
+    ]
+  },
+  {
+    id: 15,
+    name: "The Loop",
+    gates: [],
+    arrows: [
+      { id: "a1", color: "#1e1b18", strokeWidth: 1.0, speed: 6, path: [getAbsCoords(1, 1), getAbsCoords(3, 1), getAbsCoords(3, 3), getAbsCoords(1, 3), getAbsCoords(1, 2)], status: "IDLE" },
+      { id: "a2", color: "#ab364f", strokeWidth: 1.0, speed: 6, path: [getAbsCoords(2, 2), getAbsCoords(2, 1)], status: "IDLE" }
+    ]
+  },
+  {
+    id: 16,
+    name: "Serpentine",
+    gates: [
+      { edge: "U", index: 2, color: "#22d3ee" },
+      { edge: "D", index: 2, color: "#ab364f" }
+    ],
+    arrows: [
+      { id: "a1", color: "#1e1b18", strokeWidth: 1.0, speed: 8, path: [getAbsCoords(1, 1), getAbsCoords(3, 1), getAbsCoords(3, 3), getAbsCoords(1, 3)], status: "IDLE" },
+      { id: "a2", color: "#22d3ee", strokeWidth: 1.0, speed: 8, path: [getAbsCoords(2, 1), getAbsCoords(2, 2)], status: "IDLE" },
+      { id: "a3", color: "#ab364f", strokeWidth: 1.0, speed: 8, path: [getAbsCoords(2, 3), getAbsCoords(2, 2)], status: "IDLE" }
+    ]
+  },
+  {
+    id: 17,
+    name: "Double Block",
+    gates: [
+      { edge: "L", index: 1, color: "#5e9554" },
+      { edge: "L", index: 3, color: "#e59a3f" }
+    ],
+    arrows: [
+      { id: "a1", color: "#1e1b18", strokeWidth: 1.0, speed: 7, path: [getAbsCoords(3, 2), getAbsCoords(1, 2)], status: "IDLE" },
+      { id: "a2", color: "#5e9554", strokeWidth: 1.0, speed: 7, path: [getAbsCoords(1, 1), getAbsCoords(1, 2)], status: "IDLE" },
+      { id: "a3", color: "#e59a3f", strokeWidth: 1.0, speed: 7, path: [getAbsCoords(1, 3), getAbsCoords(1, 2)], status: "IDLE" }
+    ]
+  },
+  {
+    id: 18,
+    name: "Push Cart",
+    gates: [],
+    arrows: [
+      { id: "a1", color: "#1e1b18", strokeWidth: 1.0, speed: 8, path: [getAbsCoords(2, 3), getAbsCoords(2, 2)], status: "IDLE" },
+      { id: "a2", color: "#ab364f", strokeWidth: 1.0, speed: 8, path: [getAbsCoords(1, 1), getAbsCoords(3, 1)], status: "IDLE" }
+    ]
+  },
+  {
+    id: 19,
+    name: "Traffic Jam",
+    gates: [
+      { edge: "R", index: 1, color: "#ab364f" },
+      { edge: "R", index: 2, color: "#3a69a4" },
+      { edge: "R", index: 3, color: "#e59a3f" }
+    ],
+    arrows: [
+      { id: "a1", color: "#1e1b18", strokeWidth: 1.0, speed: 6, path: [getAbsCoords(2, 1), getAbsCoords(2, 3)], status: "IDLE" },
+      { id: "a2", color: "#ab364f", strokeWidth: 1.0, speed: 7, path: [getAbsCoords(1, 1), getAbsCoords(3, 1)], status: "IDLE" },
+      { id: "a3", color: "#3a69a4", strokeWidth: 1.0, speed: 7, path: [getAbsCoords(1, 2), getAbsCoords(3, 2)], status: "IDLE" },
+      { id: "a4", color: "#e59a3f", strokeWidth: 1.0, speed: 7, path: [getAbsCoords(1, 3), getAbsCoords(3, 3)], status: "IDLE" }
+    ]
+  },
+  {
+    id: 20,
+    name: "The Train Express",
+    gates: [
+      { edge: "U", index: 2, color: "#5e9554" }
+    ],
+    arrows: [
+      { id: "a1", color: "#1e1b18", strokeWidth: 1.0, speed: 8, path: [getAbsCoords(1, 2), getAbsCoords(2, 2)], status: "IDLE" },
+      { id: "a2", color: "#5e9554", strokeWidth: 1.0, speed: 8, path: [getAbsCoords(3, 2), getAbsCoords(3, 1), getAbsCoords(2, 1)], status: "IDLE" }
+    ]
+  }
 ];
-
 // Seeded Level Generator
 function generateProceduralLevel(levelId) {
   // Seeding derivate based on level ID
@@ -399,7 +517,9 @@ function generateProceduralLevel(levelId) {
   const gates = [];
   const arrows = [];
   
-  const theme = levelId >= 7 ? 1 : 0; // Train level starting at level 7
+  const theme = (levelId === 10 || levelId === 20) ? 1 : 0; // Train level starting at level 10
+  const minBound = theme === 1 ? 1 : 0;
+  const maxBound = theme === 1 ? 11 : 12;
 
   let attempts = 0;
   let success = false;
@@ -461,7 +581,7 @@ function generateProceduralLevel(levelId) {
             if (dir === "L") tc -= step;
             if (dir === "R") tc += step;
 
-            if (tc < 0 || tc > 12 || tr < 0 || tr > 12 || occupiedNodes.has(`${tc},${tr}`)) {
+            if (tc < minBound || tc > maxBound || tr < minBound || tr > maxBound || occupiedNodes.has(`${tc},${tr}`)) {
               ok = false;
               break;
             }
@@ -507,7 +627,7 @@ function generateProceduralLevel(levelId) {
           }
 
           for (const node of tempNodes) {
-            if (node.col < 0 || node.col > 12 || node.row < 0 || node.row > 12 || occupiedNodes.has(`${node.col},${node.row}`)) {
+            if (node.col < minBound || node.col > maxBound || node.row < minBound || node.row > maxBound || occupiedNodes.has(`${node.col},${node.row}`)) {
               ok = false;
               break;
             }

@@ -224,15 +224,15 @@ const ArrowGame = {
     const speedRow = document.getElementById('train-speed-control-row');
     const hudSpeedText = document.getElementById('hud-train-speed');
     if (speedRow) {
-      speedRow.style.display = lvlData.id >= 7 ? 'flex' : 'none';
+      speedRow.style.display = (lvlData.id === 10 || lvlData.id === 20) ? 'flex' : 'none';
     }
     if (hudSpeedText) {
       hudSpeedText.textContent = '1.0x';
     }
 
-    // Level 7 Train Walkthrough Tutorial triggering
+    // Level 10 Train Walkthrough Tutorial triggering
     const tutorialOverlay = document.getElementById('tutorial-overlay');
-    if (lvlData.id === 7 && !localStorage.getItem('winding_arrows_train_tutorial_shown')) {
+    if (lvlData.id === 10 && !localStorage.getItem('winding_arrows_train_tutorial_shown')) {
       if (tutorialOverlay) {
         tutorialOverlay.classList.add('active');
       }
@@ -819,7 +819,7 @@ const ArrowGame = {
 
     // Update continuous perimeter cart glide positions
     if (this.carts) {
-      if (this.level.id >= 7) {
+      if (this.level && (this.level.id === 10 || this.level.id === 20)) {
         this.trainPos = (this.trainPos + 0.035 * (this.trainSpeedMultiplier || 1.0)) % 48;
         
         // Spawn smoke particles at the locomotive chimney (approx 1.5 slots behind the head trainPos)
@@ -907,7 +907,7 @@ const ArrowGame = {
         }
 
         // Perimeter Carts matching check when reaching grid boundary
-        if (a.progress >= totalPathLen && this.carts.length > 0 && !a.checkedCart) {
+        if (a.progress >= totalPathLen && (this.carts.length > 0 || (this.level && (this.level.id === 10 || this.level.id === 20))) && !a.checkedCart) {
           a.checkedCart = true;
           const lastPt = a.smoothPath[a.smoothPath.length - 1];
           const prevPt = a.smoothPath[a.smoothPath.length - 2] || a.smoothPath[0];
@@ -921,7 +921,7 @@ const ArrowGame = {
 
           const exitPos = this.getPerimeterPosFromExit(dir, finalCol, finalRow);
           let match = false;
-          if (this.level.id >= 7) {
+          if (this.level && (this.level.id === 10 || this.level.id === 20)) {
             const trainPos = this.trainPos;
             let start = 0, end = 0;
             if (a.color === "#ab364f") { // Red
@@ -1205,7 +1205,7 @@ const ArrowGame = {
     }
 
     // Draw continuous perimeter guide track (if level has carts)
-    if (this.carts && this.carts.length > 0) {
+    if ((this.carts && this.carts.length > 0) || (this.level && (this.level.id === 10 || this.level.id === 20))) {
       this.ctx.save();
       this.ctx.strokeStyle = '#e5dfcf';
       this.ctx.lineWidth = 20;
@@ -1266,7 +1266,7 @@ const ArrowGame = {
 
     // Draw Perimeter Carts
     if (this.carts) {
-      if (this.level.id >= 7) {
+      if (this.level && (this.level.id === 10 || this.level.id === 20)) {
         const trainPos = this.trainPos;
         
         // Draw linkages
