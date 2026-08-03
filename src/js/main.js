@@ -115,12 +115,14 @@ const App = {
       document.getElementById('victory-overlay').classList.remove('active');
       
       const nextId = ArrowGame.level.id + 1;
-      if (nextId <= 30) {
+      if (nextId <= 500) {
+        console.time(`LoadLevel-${nextId}`);
         const nextData = getLevel(nextId);
         ArrowGame.startLevel(nextData);
+        console.timeEnd(`LoadLevel-${nextId}`);
         this.updateGlobalHUD();
       } else {
-        alert("🎉 INCREDIBLE! You have unlocked and escaped all 30 polyline sectors!");
+        alert("🎉 INCREDIBLE! You have unlocked and escaped all 500 polyline sectors!");
         this.showScreen('level-select-screen');
         this.renderLevelSelect();
       }
@@ -220,14 +222,41 @@ const App = {
     grid.appendChild(svg);
 
     // Scale cute nature birds proportionally to map height
-    const numBirds = Math.floor(TOTAL_HEIGHT / 400); 
+    const numBirds = Math.floor(TOTAL_HEIGHT / 250); // More birds!
     for (let i = 0; i < numBirds; i++) {
-      const bird = document.createElement('div');
-      bird.className = 'nature-bird';
-      bird.style.top = `${100 + (i * 400)}px`;
-      bird.style.animationDelay = `${i * 2.5}s`;
-      bird.style.animationDuration = `${15 + (Math.random() * 10)}s`;
-      grid.appendChild(bird);
+      const birdContainer = document.createElement('div');
+      birdContainer.className = 'nature-bird';
+      birdContainer.style.top = `${Math.random() * TOTAL_HEIGHT}px`;
+      
+      // Negative delay means they are already in motion when screen loads
+      birdContainer.style.animationDelay = `-${Math.random() * 20}s`;
+      birdContainer.style.animationDuration = `${12 + (Math.random() * 12)}s`;
+      
+      const isReverse = Math.random() > 0.5;
+      if (isReverse) {
+        birdContainer.style.animationDirection = 'reverse';
+      }
+
+      // We use an inline SVG so we can animate ONLY the wings using SVG <animate>
+      // The path forms a classic 'V' bird. We animate the outer wing tips and control points.
+      // Wings UP: M2 4 Q 7 10 12 12 Q 17 10 22 4
+      // Wings DOWN: M2 16 Q 7 14 12 12 Q 17 14 22 16
+      const flapSpeed = 0.4 + Math.random() * 0.4;
+      const svgHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.75; transform: ${isReverse ? 'scaleX(-1)' : 'none'}">
+          <path d="M2 4 Q 7 10 12 12 Q 17 10 22 4">
+            <animate 
+              attributeName="d" 
+              values="M2 4 Q 7 10 12 12 Q 17 10 22 4; M2 16 Q 7 14 12 12 Q 17 14 22 16; M2 4 Q 7 10 12 12 Q 17 10 22 4" 
+              dur="${flapSpeed}s" 
+              repeatCount="indefinite" 
+            />
+          </path>
+        </svg>
+      `;
+      
+      birdContainer.innerHTML = svgHTML;
+      grid.appendChild(birdContainer);
     }
 
     // Scale dreamy clouds proportionally to map height
@@ -281,9 +310,11 @@ const App = {
 
       if (isUnlocked) {
         card.addEventListener('click', () => {
+          console.time(`LoadLevel-${id}`);
           const lvl = getLevel(id);
           this.showScreen('gameplay-screen');
           ArrowGame.startLevel(lvl);
+          console.timeEnd(`LoadLevel-${id}`);
         });
       }
       grid.appendChild(card);

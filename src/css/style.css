@@ -293,10 +293,6 @@ body {
   position: absolute;
   width: 24px;
   height: 24px;
-  /* Classic distant 'V' bird silhouette, dark slate color so it contrasts with pastel sky */
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 12 Q 7 8 12 12 Q 17 8 22 12' opacity='0.75'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: center;
   pointer-events: none;
   z-index: 1;
   animation: fly-across 25s cubic-bezier(0.4, 0, 0.6, 1) infinite;
@@ -676,4 +672,28 @@ body {
 
 
 
+
+
+/* Mobile Responsiveness */
+@media (max-width: 500px), (max-height: 850px) {
+  .phone-wrapper {
+    width: 100vw;
+    height: 100vh;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .phone-notch {
+    display: none;
+  }
+  .screen {
+    padding: 16px 12px 12px 12px;
+  }
+  .logo-container .game-title {
+    font-size: 4.2rem;
+  }
+  .logo-container .game-title-sub {
+    font-size: 3rem;
+  }
+}
 

@@ -1497,7 +1497,6 @@ const ArrowGame = {
         this.ctx.restore();
       }
 
-      // Drop shadow for the arrow body matching screenshot depth
       this.ctx.shadowColor = 'rgba(104, 92, 76, 0.16)';
       this.ctx.shadowBlur = 6;
       this.ctx.shadowOffsetY = 3.5;

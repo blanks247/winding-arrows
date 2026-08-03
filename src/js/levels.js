@@ -510,9 +510,9 @@ function generateProceduralLevel(levelId, options = {}) {
   // Intensity waves up and down in cycles of 8 levels to prevent fatigue
   const cycle = levelId % 8;
   
-  // Base arrows starts at 3 and scales slowly up to a cap of 15 over 500 levels
-  let baseArrows = 3 + Math.floor(levelId / 30);
-  if (baseArrows > 15) baseArrows = 15;
+  // Base arrows starts at 30 and scales up to a cap of 50
+  let baseArrows = 30 + Math.floor(levelId / 20);
+  if (baseArrows > 50) baseArrows = 50;
   
   let numArrows = baseArrows + (cycle % 4);
 
@@ -659,7 +659,7 @@ function generateProceduralLevel(levelId, options = {}) {
     }
 
     // Populate themed obstacles on unoccupied nodes
-    if (arrows.length >= 50) {
+    if (arrows.length > 0) {
       const freeNodes = [];
       for (let c = 0; c < 13; c++) {
         for (let r = 0; r < 13; r++) {
@@ -722,9 +722,9 @@ function generateProceduralLevel(levelId, options = {}) {
           portals.push({ col1: n1.col, row1: n1.row, col2: n2.col, row2: n2.row });
         }
       }
-
-      success = checkSeededLevelSolvability(arrows, gates);
     }
+
+    success = checkSeededLevelSolvability(arrows, gates);
   }
 
   // Fallback template: if success check failed, return the generated 50+ arrow level anyway instead of reverting to 2 arrows
@@ -868,9 +868,9 @@ function generateMazeProceduralLevel(levelId) {
   
   const occupiedNodes = new Set();
   
-  // Base scales gently from 4 to 12 over 500 levels
-  let baseArrows = 4 + Math.floor(levelId / 50);
-  if (baseArrows > 12) baseArrows = 12;
+  // Base scales gently from 30 to 50
+  let baseArrows = 30 + Math.floor(levelId / 20);
+  if (baseArrows > 50) baseArrows = 50;
   const cycle = levelId % 8;
   
   let targetNumArrows = baseArrows + (cycle % 3);
@@ -983,9 +983,7 @@ function generateMazeProceduralLevel(levelId) {
     // Maze levels do not spawn carts by default
     let carts = [];
 
-    if (arrows.length >= 6) { 
-      success = checkSeededLevelSolvability(arrows, gates);
-    }
+    success = checkSeededLevelSolvability(arrows, gates);
     
     if (!success) {
       if (attempts % 10 === 0 && targetNumArrows > 6) targetNumArrows--;
