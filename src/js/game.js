@@ -39,13 +39,13 @@ const SoundSystem = {
       const gain = this.ctx.createGain();
       osc.connect(gain);
       gain.connect(this.ctx.destination);
-      
+
       osc.type = 'triangle';
       osc.frequency.setValueAtTime(600, this.ctx.currentTime);
       osc.frequency.exponentialRampToValueAtTime(1200, this.ctx.currentTime + 0.2);
       gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.2);
-      
+
       osc.start();
       osc.stop(this.ctx.currentTime + 0.2);
     } catch (e) {
@@ -61,12 +61,12 @@ const SoundSystem = {
       const gain = this.ctx.createGain();
       osc.connect(gain);
       gain.connect(this.ctx.destination);
-      
+
       osc.type = 'sawtooth';
       osc.frequency.setValueAtTime(150, this.ctx.currentTime);
       gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.15);
-      
+
       osc.start();
       osc.stop(this.ctx.currentTime + 0.15);
     } catch (e) {
@@ -84,11 +84,11 @@ const SoundSystem = {
         const gain = this.ctx.createGain();
         osc.connect(gain);
         gain.connect(this.ctx.destination);
-        
+
         osc.frequency.setValueAtTime(freq, now + idx * 0.08);
         gain.gain.setValueAtTime(0.06, now + idx * 0.08);
         gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.45);
-        
+
         osc.start(now + idx * 0.08);
         osc.stop(now + idx * 0.08 + 0.5);
       });
@@ -103,7 +103,7 @@ const ArrowGame = {
   ctx: null,
   active: false,
   level: null,
-  
+
   arrows: [],
   particles: [],
   history: [],
@@ -117,9 +117,9 @@ const ArrowGame = {
     smooth.push({ ...path[0] });
 
     for (let i = 1; i < path.length - 1; i++) {
-      const p1 = path[i-1];
+      const p1 = path[i - 1];
       const p2 = path[i];
-      const p3 = path[i+1];
+      const p3 = path[i + 1];
 
       const len1 = Math.hypot(p2.x - p1.x, p2.y - p1.y);
       const len2 = Math.hypot(p3.x - p2.x, p3.y - p2.y);
@@ -161,7 +161,23 @@ const ArrowGame = {
     this.ctx = this.canvas.getContext('2d');
     this.loadSaveData();
     this.setupInput();
+    this.resizeCanvas();
+    window.addEventListener('resize', () => this.resizeCanvas());
     this.loop();
+  },
+
+  resizeCanvas() {
+    const wrapper = this.canvas.parentElement;
+    if (!wrapper) return;
+    const wrapperW = wrapper.clientWidth;
+    const wrapperH = wrapper.clientHeight;
+    // Logical canvas dimensions (game world always runs at these coords)
+    const logicalW = 360;
+    const logicalH = 460;
+    const scale = Math.min(wrapperW / logicalW, wrapperH / logicalH, 1);
+    // Apply CSS scaling to fit the wrapper without distortion
+    this.canvas.style.width  = Math.floor(logicalW * scale) + 'px';
+    this.canvas.style.height = Math.floor(logicalH * scale) + 'px';
   },
 
   loadSaveData() {
@@ -209,9 +225,9 @@ const ArrowGame = {
         status: 'IDLE',
         ghost: a.ghost || false,
         // Animation variables
-        progress: 0, 
+        progress: 0,
         squeezeFactor: 1.0,
-        bumpTime: 0 
+        bumpTime: 0
       };
     });
 
@@ -250,14 +266,14 @@ const ArrowGame = {
     this.lastTapTime = 0;
     const handleTap = (e) => {
       if (!this.active) return;
-      
+
       // Debounce rapid double taps to prevent multiple triggers in short intervals
       const now = Date.now();
       if (now - this.lastTapTime < 100) return;
       this.lastTapTime = now;
 
       SoundSystem.init();
-      
+
       const rect = this.canvas.getBoundingClientRect();
       const clientX = e.touches ? e.touches[0].clientX : e.clientX;
       const clientY = e.touches ? e.touches[0].clientY : e.clientY;
@@ -285,7 +301,7 @@ const ArrowGame = {
 
     this.canvas.addEventListener('click', handleTap);
     this.canvas.addEventListener('mousemove', handleMove);
-    
+
     // Use active touch listeners to prevent default zooming/scrolling delays
     this.canvas.addEventListener('touchstart', (e) => { e.preventDefault(); handleTap(e); }, { passive: false });
     this.canvas.addEventListener('touchmove', (e) => { e.preventDefault(); handleMove(e); }, { passive: false });
@@ -342,7 +358,7 @@ const ArrowGame = {
 
       // Check distance from point to all smooth path segments
       for (let i = 0; i < a.smoothPath.length - 1; i++) {
-        const d = this.distToSegment({ x, y }, a.smoothPath[i], a.smoothPath[i+1]);
+        const d = this.distToSegment({ x, y }, a.smoothPath[i], a.smoothPath[i + 1]);
         const hitWidth = 14 * a.strokeWidth; // Tap hitbox expanded to cover full visual width plus margins
         if (d < hitWidth && d < minDist) {
           minDist = d;
@@ -354,19 +370,55 @@ const ArrowGame = {
     return nearest;
   },
 
+  isBendingArrow(a) {
+    if (!a || !a.path || a.path.length < 2) return false;
+    const first = a.path[0];
+    let hasXVariation = false;
+    let hasYVariation = false;
+    for (let i = 1; i < a.path.length; i++) {
+      if (Math.abs(a.path[i].x - first.x) > 0.1) hasXVariation = true;
+      if (Math.abs(a.path[i].y - first.y) > 0.1) hasYVariation = true;
+    }
+    return hasXVariation && hasYVariation;
+  },
+
+  getArrowLength(a) {
+    let base = 38;
+    if (this.isBendingArrow(a)) {
+      base = 48;
+    }
+    let arrowLength = base * a.strokeWidth;
+    if (this.level && this.level.isMaze) {
+      if (!a.initialLength) {
+        a.initialLength = this.getPathLength(this.generateSmoothPath(a.path));
+      }
+      arrowLength = a.initialLength;
+    }
+    return arrowLength;
+  },
+
+  getMovingArrowLength(a) {
+    let base = 28;
+    if (this.isBendingArrow(a)) {
+      base = 38;
+    }
+    let movingArrowLength = base * a.strokeWidth;
+    if (this.level && this.level.isMaze) {
+      if (!a.initialLength) {
+        a.initialLength = this.getPathLength(this.generateSmoothPath(a.path));
+      }
+      movingArrowLength = a.initialLength;
+    }
+    return movingArrowLength;
+  },
+
   checkCollisionAtProgress(movingArrow, progress) {
     const pitch = GRID_COORDS.pitch;
     const offsetX = GRID_COORDS.offsetX;
     const offsetY = GRID_COORDS.offsetY;
 
     // Get the head point of the moving arrow at this progress
-    let movingArrowLength = 28 * movingArrow.strokeWidth;
-    if (this.level && this.level.isMaze) {
-      if (!movingArrow.initialLength) {
-        movingArrow.initialLength = this.getPathLength(this.generateSmoothPath(movingArrow.path));
-      }
-      movingArrowLength = movingArrow.initialLength;
-    }
+    const movingArrowLength = this.getMovingArrowLength(movingArrow);
     const headDist = progress + movingArrowLength;
     const pts = this.getPointsAlongPath(movingArrow.smoothPath, progress, headDist);
     if (pts.length === 0) return false;
@@ -409,16 +461,10 @@ const ArrowGame = {
         if (other.status === 'IDLE') {
           // Blocker is stationary: check ONLY its physical visible body, not the entire invisible future path!
           // For idle arrows, their visible body is from distance 0 to 38 * strokeWidth (or initialLength if we made it long).
-          let arrowLength = 38 * other.strokeWidth;
-          if (this.level && this.level.isMaze) {
-            if (!other.initialLength) {
-              other.initialLength = this.getPathLength(this.generateSmoothPath(other.path));
-            }
-            arrowLength = other.initialLength; 
-          }
+          const arrowLength = this.getArrowLength(other);
           const otherPts = this.getPointsAlongPath(other.smoothPath, 0, arrowLength);
           for (let i = 0; i < otherPts.length - 1; i++) {
-            const d = this.getMinDistanceBetweenSegments(prevHeadPt, headPt, otherPts[i], otherPts[i+1]);
+            const d = this.getMinDistanceBetweenSegments(prevHeadPt, headPt, otherPts[i], otherPts[i + 1]);
             const threshold = 4.5 * (movingArrow.strokeWidth + other.strokeWidth);
             if (d < threshold) {
               hitArrow = true;
@@ -432,17 +478,11 @@ const ArrowGame = {
             // Ignore collision to prevent bouncing off the "animation effect"
             return; // Acts as continue in forEach
           }
-          
-          let arrowLength = 38 * other.strokeWidth;
-          if (this.level && this.level.isMaze) {
-            if (!other.initialLength) {
-              other.initialLength = this.getPathLength(this.generateSmoothPath(other.path));
-            }
-            arrowLength = other.initialLength;
-          }
+
+          const arrowLength = this.getArrowLength(other);
           const otherPts = this.getPointsAlongPath(other.smoothPath, other.progress, other.progress + arrowLength);
           for (let i = 0; i < otherPts.length - 1; i++) {
-            const d = this.getMinDistanceBetweenSegments(prevHeadPt, headPt, otherPts[i], otherPts[i+1]);
+            const d = this.getMinDistanceBetweenSegments(prevHeadPt, headPt, otherPts[i], otherPts[i + 1]);
             const threshold = 4.5 * (movingArrow.strokeWidth + other.strokeWidth);
             if (d < threshold) {
               hitArrow = true;
@@ -454,13 +494,13 @@ const ArrowGame = {
     if (hitArrow) return true;
 
     // 2. Check collision with Void tiles (crumbling tiles with 0 durability)
-    const hitVoid = this.crumblingTiles.some(ct => 
+    const hitVoid = this.crumblingTiles.some(ct =>
       ct.col === hCol && ct.row === hRow && ct.durability <= 0
     );
     if (hitVoid) return true;
 
     // 3. Check collision with closed Timed Gates
-    const hitTimedGate = this.timedGates.some(tg => 
+    const hitTimedGate = this.timedGates.some(tg =>
       tg.col === hCol && tg.row === hRow && tg.timer > 0
     );
     if (hitTimedGate) return true;
@@ -472,7 +512,7 @@ const ArrowGame = {
       const ly1 = offsetY + lb.row1 * pitch;
       const lx2 = offsetX + lb.col2 * pitch;
       const ly2 = offsetY + lb.row2 * pitch;
-      
+
       const d = this.distToSegment(headPt, { x: lx1, y: ly1 }, { x: lx2, y: ly2 });
       return d < 8;
     });
@@ -484,16 +524,16 @@ const ArrowGame = {
   canArrowEscape(movingArrow) {
     const totalLen = this.getPathLength(movingArrow.smoothPath);
     for (let progress = 0; progress < totalLen; progress += 4) {
-      const headDist = progress + (28 * movingArrow.strokeWidth);
+      const headDist = progress + this.getMovingArrowLength(movingArrow);
       const pts = this.getPointsAlongPath(movingArrow.smoothPath, progress, headDist);
       if (pts.length === 0) continue;
       const headPt = pts[pts.length - 1];
 
       for (const other of this.arrows) {
         if (other.id !== movingArrow.id && other.status === 'IDLE') {
-          const otherPts = this.getPointsAlongPath(other.smoothPath, 0, 28 * other.strokeWidth);
+          const otherPts = this.getPointsAlongPath(other.smoothPath, 0, this.getMovingArrowLength(other));
           for (let i = 0; i < otherPts.length - 1; i++) {
-            const d = this.distToSegment(headPt, otherPts[i], otherPts[i+1]);
+            const d = this.distToSegment(headPt, otherPts[i], otherPts[i + 1]);
             const threshold = 4.5 * (movingArrow.strokeWidth + other.strokeWidth);
             if (d < threshold) {
               return false; // Collides!
@@ -548,10 +588,10 @@ const ArrowGame = {
       movingArrow.status = 'ESCAPING';
       movingArrow.progress = 0;
       movingArrow.currentSpeed = movingArrow.speed;
-      
+
       movingArrow.willCollide = true;
       movingArrow.collisionLimit = collisionLimit;
-      
+
       SoundSystem.playWhoosh();
     } else {
       // Success: Save history state first
@@ -563,11 +603,11 @@ const ArrowGame = {
       if (tracedPaths.length === 1) {
         movingArrow.path = tracedPaths[0].map(p => getAbsCoords(p.col, p.row));
         movingArrow.smoothPath = this.generateSmoothPath(movingArrow.path);
-        
+
         movingArrow.status = 'ESCAPING';
         movingArrow.progress = 0;
         movingArrow.currentSpeed = movingArrow.speed;
-        
+
         movingArrow.willCollide = false;
         movingArrow.collisionLimit = -1;
       } else {
@@ -576,7 +616,7 @@ const ArrowGame = {
         tracedPaths.forEach((tp, idx) => {
           const childPath = tp.map(p => getAbsCoords(p.col, p.row));
           const childSmooth = this.generateSmoothPath(childPath);
-          
+
           const childArrow = {
             id: `${movingArrow.id}_child_${idx}_${Date.now()}`,
             color: movingArrow.color,
@@ -641,11 +681,11 @@ const ArrowGame = {
     // Get final segment of arrow
     const head = movingArrow.path[movingArrow.path.length - 1];
     const prev = movingArrow.path[movingArrow.path.length - 2];
-    
+
     // Find direction vector
     const dx = head.x - prev.x;
     const dy = head.y - prev.y;
-    
+
     let targetEdge = null;
     let gateIndex = -1;
 
@@ -675,12 +715,12 @@ const ArrowGame = {
     // 1. Project path: segments of path + extended ray to screen edge
     const head = movingArrow.path[movingArrow.path.length - 1];
     const prev = movingArrow.path[movingArrow.path.length - 2];
-    
+
     // Create extended ray from head outwards to edge
     const dx = head.x - prev.x;
     const dy = head.y - prev.y;
     const len = Math.hypot(dx, dy);
-    
+
     // Extend exit ray 500px off screen
     const exitRay = {
       start: head,
@@ -693,7 +733,7 @@ const ArrowGame = {
     // Combine smooth segments with extended exit segment
     const movingSegments = [];
     for (let i = 0; i < movingArrow.smoothPath.length - 1; i++) {
-      movingSegments.push({ start: movingArrow.smoothPath[i], end: movingArrow.smoothPath[i+1] });
+      movingSegments.push({ start: movingArrow.smoothPath[i], end: movingArrow.smoothPath[i + 1] });
     }
     movingSegments.push(exitRay);
 
@@ -708,7 +748,7 @@ const ArrowGame = {
       // Extract static smooth segments of other arrow
       const otherSegments = [];
       for (let j = 0; j < other.smoothPath.length - 1; j++) {
-        otherSegments.push({ start: other.smoothPath[j], end: other.smoothPath[j+1] });
+        otherSegments.push({ start: other.smoothPath[j], end: other.smoothPath[j + 1] });
       }
 
       // Check distance between all moving segments vs all static segments
@@ -740,10 +780,10 @@ const ArrowGame = {
   distToSegment(p, s1, s2) {
     const l2 = Math.pow(s2.x - s1.x, 2) + Math.pow(s2.y - s1.y, 2);
     if (l2 === 0) return Math.hypot(p.x - s1.x, p.y - s1.y);
-    
+
     let t = ((p.x - s1.x) * (s2.x - s1.x) + (p.y - s1.y) * (s2.y - s1.y)) / l2;
     t = Math.max(0, Math.min(1, t));
-    
+
     const proj = {
       x: s1.x + t * (s2.x - s1.x),
       y: s1.y + t * (s2.y - s1.y)
@@ -816,7 +856,6 @@ const ArrowGame = {
   },
 
   updateHUD() {
-    document.getElementById('game-moves-count').textContent = this.movesCount;
     if (document.getElementById('hud-level-num')) {
       document.getElementById('hud-level-num').textContent = this.level ? this.level.id : "1";
     }
@@ -824,7 +863,7 @@ const ArrowGame = {
       const hCount = Math.max(0, this.hearts !== undefined ? this.hearts : 3);
       document.getElementById('hud-hearts').innerHTML = '❤️️'.repeat(hCount);
     }
-    
+
     // Calculate progress percentage
     if (this.arrows && this.arrows.length > 0 && document.getElementById('game-progress-fill')) {
       const total = this.arrows.length;
@@ -863,7 +902,7 @@ const ArrowGame = {
     if (this.carts) {
       if (this.level && (this.level.id === 10 || this.level.id === 20 || this.level.id === 30)) {
         this.trainPos = (this.trainPos + 0.035 * (this.trainSpeedMultiplier || 1.0)) % 48;
-        
+
         // Spawn smoke particles at the locomotive chimney (approx 1.5 slots behind the head trainPos)
         if (this.smokeParticles && Math.random() < 0.35) {
           const chimneyP = (this.trainPos - 1.5 + 48) % 48;
@@ -908,14 +947,14 @@ const ArrowGame = {
       if (a.status === 'ESCAPING') {
         a.currentSpeed = (a.currentSpeed || a.speed) + 0.95;
         a.progress += a.currentSpeed;
-        
+
         // Keep arrow size constant during escape
         a.squeezeFactor = 1.0;
 
         // Calculate total path length
         let totalPathLen = 0;
         for (let i = 0; i < a.path.length - 1; i++) {
-          totalPathLen += Math.hypot(a.path[i+1].x - a.path[i].x, a.path[i+1].y - a.path[i].y);
+          totalPathLen += Math.hypot(a.path[i + 1].x - a.path[i].x, a.path[i + 1].y - a.path[i].y);
         }
 
         // Check if the moving arrow has reached its collision limit
@@ -931,7 +970,7 @@ const ArrowGame = {
           this.updateHUD();
 
           // Spawn collision contact particles at the head of the arrow
-          const headDist = a.progress + (28 * a.strokeWidth);
+          const headDist = a.progress + this.getMovingArrowLength(a);
           const pts = this.getPointsAlongPath(a.smoothPath, a.progress, headDist);
           if (pts.length > 0) {
             const headPt = pts[pts.length - 1];
@@ -1100,6 +1139,25 @@ const ArrowGame = {
     }
 
     // Plain background as requested by user.
+
+    // Draw optional grid dots overlay
+    if (this.showGrid) {
+      const pitch = GRID_COORDS.pitch;
+      const ox = GRID_COORDS.offsetX;
+      const oy = GRID_COORDS.offsetY;
+      this.ctx.save();
+      for (let col = 0; col <= 12; col++) {
+        for (let row = 0; row <= 12; row++) {
+          const x = ox + col * pitch;
+          const y = oy + row * pitch;
+          this.ctx.beginPath();
+          this.ctx.arc(x, y, 2.2, 0, Math.PI * 2);
+          this.ctx.fillStyle = 'rgba(104, 92, 76, 0.25)';
+          this.ctx.fill();
+        }
+      }
+      this.ctx.restore();
+    }
 
     // Draw Pressure Switches
     if (this.switches) {
@@ -1292,7 +1350,7 @@ const ArrowGame = {
         this.ctx.beginPath();
         this.ctx.arc(px1, py1, 10, 0, Math.PI * 2);
         this.ctx.stroke();
-        
+
         // Inner portal core
         this.ctx.fillStyle = 'rgba(16, 185, 129, 0.2)';
         this.ctx.fill();
@@ -1303,7 +1361,7 @@ const ArrowGame = {
         this.ctx.beginPath();
         this.ctx.arc(px2, py2, 10, 0, Math.PI * 2);
         this.ctx.stroke();
-        
+
         // Inner exit core
         this.ctx.fillStyle = 'rgba(59, 130, 246, 0.2)';
         this.ctx.fill();
@@ -1315,12 +1373,12 @@ const ArrowGame = {
     if (this.carts) {
       if (this.level && (this.level.id === 10 || this.level.id === 20 || this.level.id === 30)) {
         const trainPos = this.trainPos;
-        
+
         // Draw linkages
         this.drawLinkage(trainPos - 6, trainPos - 4); // Engine to Red
         this.drawLinkage(trainPos - 17, trainPos - 15); // Red to Blue
         this.drawLinkage(trainPos - 28, trainPos - 26); // Blue to Green
-        
+
         // Draw segments
         this.drawTrainSegment("#1e1b18", trainPos - 4, trainPos, true); // Black Engine
         this.drawTrainSegment("#ab364f", trainPos - 15, trainPos - 6, false); // Red Cart
@@ -1331,7 +1389,7 @@ const ArrowGame = {
           for (let car = 0; car < 3; car++) {
             const carPos = (c.pos - car * 0.72 + 48) % 48;
             const coords = this.getPerimeterCoords(carPos);
-            
+
             const coords1 = this.getPerimeterCoords((carPos - 0.15 + 48) % 48);
             const coords2 = this.getPerimeterCoords((carPos + 0.15 + 48) % 48);
             const angle = Math.atan2(coords2.y - coords1.y, coords2.x - coords1.x);
@@ -1367,7 +1425,7 @@ const ArrowGame = {
             wheelOffsets.forEach(wo => {
               this.ctx.save();
               this.ctx.translate(wo.x, wo.y);
-              const spin = c.pos * Math.PI * 2.5; 
+              const spin = c.pos * Math.PI * 2.5;
               this.ctx.rotate(spin);
 
               this.ctx.fillStyle = '#4a3f35';
@@ -1446,10 +1504,10 @@ const ArrowGame = {
       const gridPointsCount = 13;
       this.level.gates.forEach(g => {
         this.ctx.save();
-        
+
         let gx = 0, gy = 0, gw = 6, gh = 6;
         const pitch = GRID_COORDS.pitch;
-        
+
         if (g.edge === "L") {
           gx = GRID_COORDS.offsetX - 22;
           gy = GRID_COORDS.offsetY + g.index * pitch - 12;
@@ -1510,7 +1568,7 @@ const ArrowGame = {
           const tailPt = pts[0];
           const nextPt = pts[1];
           const angle = Math.atan2(nextPt.y - tailPt.y, nextPt.x - tailPt.x);
-          
+
           this.ctx.save();
           this.ctx.translate(tailPt.x, tailPt.y);
           this.ctx.rotate(angle);
@@ -1596,7 +1654,7 @@ const ArrowGame = {
   getPathLength(path) {
     let len = 0;
     for (let i = 0; i < path.length - 1; i++) {
-      len += Math.hypot(path[i+1].x - path[i].x, path[i+1].y - path[i].y);
+      len += Math.hypot(path[i + 1].x - path[i].x, path[i + 1].y - path[i].y);
     }
     return len;
   },
@@ -1619,14 +1677,14 @@ const ArrowGame = {
     let started = false;
 
     for (let i = 0; i < extended.length - 1; i++) {
-      const segLen = Math.hypot(extended[i+1].x - extended[i].x, extended[i+1].y - extended[i].y);
-      
+      const segLen = Math.hypot(extended[i + 1].x - extended[i].x, extended[i + 1].y - extended[i].y);
+
       // If startDist is within this segment
       if (!started && accum + segLen >= startDist) {
         const ratio = (startDist - accum) / segLen;
         points.push({
-          x: extended[i].x + (extended[i+1].x - extended[i].x) * ratio,
-          y: extended[i].y + (extended[i+1].y - extended[i].y) * ratio
+          x: extended[i].x + (extended[i + 1].x - extended[i].x) * ratio,
+          y: extended[i].y + (extended[i + 1].y - extended[i].y) * ratio
         });
         started = true;
       }
@@ -1635,12 +1693,12 @@ const ArrowGame = {
         if (accum + segLen >= endDist) {
           const ratio = (endDist - accum) / segLen;
           points.push({
-            x: extended[i].x + (extended[i+1].x - extended[i].x) * ratio,
-            y: extended[i].y + (extended[i+1].y - extended[i].y) * ratio
+            x: extended[i].x + (extended[i + 1].x - extended[i].x) * ratio,
+            y: extended[i].y + (extended[i + 1].y - extended[i].y) * ratio
           });
           break;
         } else {
-          points.push({ x: extended[i+1].x, y: extended[i+1].y });
+          points.push({ x: extended[i + 1].x, y: extended[i + 1].y });
         }
       }
       accum += segLen;
@@ -1655,7 +1713,7 @@ const ArrowGame = {
     const c2 = Math.round((p2.x - GRID_COORDS.offsetX) / GRID_COORDS.pitch);
     const r2 = Math.round((p2.y - GRID_COORDS.offsetY) / GRID_COORDS.pitch);
 
-    return this.portals.some(p => 
+    return this.portals.some(p =>
       (p.col1 === c1 && p.row1 === r1 && p.col2 === c2 && p.row2 === r2) ||
       (p.col2 === c1 && p.row2 === r1 && p.col1 === c2 && p.row1 === r2)
     );
@@ -1664,21 +1722,15 @@ const ArrowGame = {
   drawPolylinePath(a) {
     const startDist = (a.status === 'ESCAPING' || a.status === 'REBOUNDING' || a.status === 'COLLIDED') ? a.progress : 0;
     const totalLen = this.getPathLength(a.smoothPath);
-    let arrowLength = 38 * a.strokeWidth;
-    if (this.level && this.level.isMaze) {
-      if (!a.initialLength) {
-        a.initialLength = this.getPathLength(this.generateSmoothPath(a.path));
-      }
-      arrowLength = a.initialLength;
-    }
+    const arrowLength = this.getArrowLength(a);
     const endDist = startDist + arrowLength;
-    
+
     const pts = this.getPointsAlongPath(a.smoothPath, startDist, endDist);
     if (pts.length > 0) {
       this.ctx.beginPath();
       this.ctx.moveTo(pts[0].x, pts[0].y);
       for (let i = 1; i < pts.length; i++) {
-        const prev = pts[i-1];
+        const prev = pts[i - 1];
         const curr = pts[i];
         if (this.isPortalTransition(prev, curr)) {
           this.ctx.moveTo(curr.x, curr.y);
@@ -1692,13 +1744,7 @@ const ArrowGame = {
   drawArrowHead(a) {
     const startDist = (a.status === 'ESCAPING' || a.status === 'REBOUNDING' || a.status === 'COLLIDED') ? a.progress : 0;
     const totalLen = this.getPathLength(a.smoothPath);
-    let arrowLength = 38 * a.strokeWidth;
-    if (this.level && this.level.isMaze) {
-      if (!a.initialLength) {
-        a.initialLength = this.getPathLength(this.generateSmoothPath(a.path));
-      }
-      arrowLength = a.initialLength;
-    }
+    const arrowLength = this.getArrowLength(a);
     const endDist = startDist + arrowLength;
 
     const pts = this.getPointsAlongPath(a.smoothPath, startDist, endDist);
@@ -1837,7 +1883,7 @@ const ArrowGame = {
 
   drawTrainSegment(color, startPos, endPos, isEngine) {
     this.ctx.save();
-    
+
     // 1. Draw background chassis outline
     this.ctx.strokeStyle = '#292524';
     this.ctx.lineWidth = 18;
@@ -1875,7 +1921,7 @@ const ArrowGame = {
     wheelPositions.forEach(t => {
       const p = startPos + t * (endPos - startPos);
       const coords = this.getPerimeterCoords((p + 48) % 48);
-      
+
       const coords1 = this.getPerimeterCoords((p - 0.15 + 48) % 48);
       const coords2 = this.getPerimeterCoords((p + 0.15 + 48) % 48);
       const angle = Math.atan2(coords2.y - coords1.y, coords2.x - coords1.x);
@@ -1887,7 +1933,7 @@ const ArrowGame = {
       this.ctx.fillStyle = '#1c1917';
       this.ctx.beginPath(); this.ctx.arc(0, -9.5, 4.0, 0, Math.PI * 2); this.ctx.fill();
       this.ctx.beginPath(); this.ctx.arc(0, 9.5, 4.0, 0, Math.PI * 2); this.ctx.fill();
-      
+
       this.ctx.fillStyle = '#d6d3d1';
       this.ctx.beginPath(); this.ctx.arc(0, -9.5, 1.5, 0, Math.PI * 2); this.ctx.fill();
       this.ctx.beginPath(); this.ctx.arc(0, 9.5, 1.5, 0, Math.PI * 2); this.ctx.fill();
@@ -1899,7 +1945,7 @@ const ArrowGame = {
     if (isEngine) {
       const noseP = endPos;
       const noseCoords = this.getPerimeterCoords((noseP + 48) % 48);
-      
+
       const coords1 = this.getPerimeterCoords((noseP - 0.15 + 48) % 48);
       const coords2 = this.getPerimeterCoords((noseP + 0.15 + 48) % 48);
       const noseAngle = Math.atan2(coords2.y - coords1.y, coords2.x - coords1.x);
@@ -1932,7 +1978,7 @@ const ArrowGame = {
       windowPositions.forEach(t => {
         const p = startPos + t * (endPos - startPos);
         const coords = this.getPerimeterCoords((p + 48) % 48);
-        
+
         const coords1 = this.getPerimeterCoords((p - 0.15 + 48) % 48);
         const coords2 = this.getPerimeterCoords((p + 0.15 + 48) % 48);
         const angle = Math.atan2(coords2.y - coords1.y, coords2.x - coords1.x);
@@ -1955,7 +2001,7 @@ const ArrowGame = {
     if (this.colorBlindMode) {
       const centerP = (startPos + endPos) / 2;
       const coords = this.getPerimeterCoords((centerP + 48) % 48);
-      
+
       let letter = "C";
       if (color === "#ab364f") letter = "R";
       if (color === "#3a69a4") letter = "B";
@@ -1987,15 +2033,15 @@ const ArrowGame = {
     while (queue.length > 0) {
       const current = queue.shift();
       const path = current.path;
-      
+
       let head = path[path.length - 1];
       let prev = path[path.length - 2] || path[0];
       let dCol = head.col - prev.col;
       let dRow = head.row - prev.row;
-      
+
       if (dCol !== 0) dCol = dCol > 0 ? 1 : -1;
       if (dRow !== 0) dRow = dRow > 0 ? 1 : -1;
-      
+
       if (path.length < 2) {
         dCol = 1; dRow = 0;
       }
@@ -2007,7 +2053,7 @@ const ArrowGame = {
       while (true) {
         currCol += dCol;
         currRow += dRow;
-        
+
         // Check Teleport Portals
         const portal = this.portals ? this.portals.find(p => p.col1 === currCol && p.row1 === currRow) : null;
         if (portal) {
@@ -2051,7 +2097,7 @@ const ArrowGame = {
             const branchedPath = path.map(p => ({ ...p }));
             queue.push({ path: branchedPath });
           });
-          break; 
+          break;
         }
       }
 
@@ -2071,7 +2117,7 @@ const ArrowGame = {
 
     for (let i = 0; i < gridNodes.length - 1; i++) {
       const n1 = gridNodes[i];
-      const n2 = gridNodes[i+1];
+      const n2 = gridNodes[i + 1];
 
       const activeLaser = this.laserBarriers.find(lb => {
         if (!lb.active) return false;

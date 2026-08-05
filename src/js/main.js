@@ -72,20 +72,6 @@ const App = {
       ArrowGame.startLevel(ArrowGame.level);
     });
 
-    // Colorblind toggle button
-    document.getElementById('btn-colorblind').addEventListener('click', () => {
-      SoundSystem.playSelect();
-      ArrowGame.colorBlindMode = !ArrowGame.colorBlindMode;
-      const btn = document.getElementById('btn-colorblind');
-      if (ArrowGame.colorBlindMode) {
-        btn.style.background = '#6ab5b4';
-        btn.style.color = '#ffffff';
-      } else {
-        btn.style.background = '';
-        btn.style.color = '';
-      }
-    });
-
     // Pause button float
     document.getElementById('btn-game-pause').addEventListener('click', () => {
       SoundSystem.playSelect();
