@@ -9,8 +9,6 @@ const App = {
     this.loadProgress();
     this.bindEvents();
     this.renderLevelSelect();
-    this.renderShop();
-    this.updateGlobalHUD();
 
     // Intercept native Android device Back Key triggers
     window.onAndroidBack = () => {
@@ -48,19 +46,11 @@ const App = {
   },
 
   updateGlobalHUD() {
-    document.getElementById('menu-tokens-count').textContent = ArrowGame.tokens;
-    document.getElementById('shop-tokens-count').textContent = ArrowGame.tokens;
   },
 
   bindEvents() {
     document.getElementById('btn-play').addEventListener('click', () => this.showScreen('level-select-screen'));
-    document.getElementById('btn-shop').addEventListener('click', () => {
-      this.renderShop();
-      this.showScreen('shop-screen');
-    });
-
     document.getElementById('btn-level-back').addEventListener('click', () => this.showScreen('menu-screen'));
-    document.getElementById('btn-shop-back').addEventListener('click', () => this.showScreen('menu-screen'));
 
     // Game Inputs
     document.getElementById('btn-undo').addEventListener('click', () => ArrowGame.undoMove());
@@ -70,6 +60,12 @@ const App = {
     document.getElementById('btn-restart-game-direct').addEventListener('click', () => {
       SoundSystem.playSelect();
       ArrowGame.startLevel(ArrowGame.level);
+    });
+
+    // Grid toggle button
+    document.getElementById('btn-grid-toggle').addEventListener('click', () => {
+      SoundSystem.playSelect();
+      ArrowGame.showGrid = !ArrowGame.showGrid;
     });
 
     // Pause button float
@@ -266,7 +262,7 @@ const App = {
       card.style.top = `${(coord.y / TOTAL_HEIGHT) * 100}%`;
 
       const isFirst = id === 1;
-      const isUnlocked = isFirst || this.clearedLevels.includes(id - 1);
+      const isUnlocked = true; // TEMPORARY UNLOCK ALL
       const isCleared = this.clearedLevels.includes(id);
 
       if (isCleared) {
@@ -317,61 +313,6 @@ const App = {
         if (scrollArea) scrollArea.scrollTop = scrollArea.scrollHeight;
       }
     }, 50);
-  },
-
-  renderShop() {
-    const container = document.querySelector('.shop-items-container');
-    container.innerHTML = '';
-
-    const upgradeList = [
-      {
-        key: 'undo',
-        name: 'Auto-Core Recharge',
-        desc: 'Unlocks advanced energy-undo recovery pools.',
-        cost: 150,
-        purchased: localStorage.getItem('winding_upg_undo') === 'true'
-      },
-      {
-        key: 'hints',
-        name: 'Target Scan Decoders',
-        desc: 'Unlocks instant flash scanning to identify free polylines.',
-        cost: 200,
-        purchased: localStorage.getItem('winding_upg_hints') === 'true'
-      }
-    ];
-
-    upgradeList.forEach(upg => {
-      const card = document.createElement('div');
-      card.className = 'shop-item-card';
-
-      const btnText = upg.purchased ? 'OWNED' : `🔋 ${upg.cost}`;
-
-      card.innerHTML = `
-        <div class="shop-item-info">
-          <h3>${upg.name}</h3>
-          <p>${upg.desc}</p>
-        </div>
-        <button class="btn btn-primary buy-btn" ${upg.purchased || ArrowGame.tokens < upg.cost ? 'disabled' : ''}>
-          ${btnText}
-        </button>
-      `;
-
-      const buyBtn = card.querySelector('.buy-btn');
-      if (buyBtn && !upg.purchased) {
-        buyBtn.addEventListener('click', () => {
-          if (ArrowGame.tokens >= upg.cost) {
-            ArrowGame.tokens -= upg.cost;
-            localStorage.setItem(`winding_upg_${upg.key}`, 'true');
-            ArrowGame.saveData();
-            SoundSystem.playSelect();
-            this.updateGlobalHUD();
-            this.renderShop();
-          }
-        });
-      }
-
-      container.appendChild(card);
-    });
   }
 };
 

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Winding Arrows: Puzzle Escape</title>
   <link rel="icon" href="data:;base64,iVBORw0KGgo=">
-  <link rel="stylesheet" href="src/css/style.css">
+  <link rel="stylesheet" href="src/css/style.css?v=123">
   <script>
     window.onerror = function(msg, url, line) {
       const div = document.createElement('div');
@@ -38,11 +38,9 @@
           <p class="game-subtitle">Polyline Logic Escape</p>
         </div>
         <div class="menu-actions">
-          <button id="btn-play" class="btn btn-primary">Start Escape</button>
-          <button id="btn-shop" class="btn btn-secondary">Upgrade Core</button>
+          <button id="btn-play" class="btn btn-start-hero">Start Escape</button>
         </div>
         <div class="menu-footer">
-          <span class="currency-hud">🔋 <span id="menu-tokens-count">0</span> Power</span>
         </div>
       </div>
 
@@ -103,25 +101,12 @@
             <span class="btn-3d-label">RESTART</span>
           </button>
           <button id="btn-grid-toggle" class="btn-3d">
-            <span class="btn-3d-icon">⚫</span>
+            <span class="btn-3d-icon">▦</span>
             <span class="btn-3d-label">GRID</span>
           </button>
         </div>
       </div>
 
-      <!-- ================= SHOP SCREEN ================= -->
-      <div id="shop-screen" class="screen">
-        <div class="screen-header">
-          <button id="btn-shop-back" class="btn btn-icon">◀</button>
-          <h2>Power Garage</h2>
-        </div>
-        <div class="shop-balance">
-          Available Power: 🔋 <span id="shop-tokens-count">0</span>
-        </div>
-        <div class="shop-items-container">
-          <!-- Populated dynamically -->
-        </div>
-      </div>
 
       <!-- ================= PAUSE OVERLAY ================= -->
       <div id="pause-overlay" class="overlay">
@@ -140,8 +125,8 @@
       <div id="gameover-overlay" class="overlay">
         <div class="overlay-card">
           <div class="success-icon" style="color: #ab364f;">💔</div>
-          <h2 class="overlay-title">SYSTEM FAILURE</h2>
-          <p class="overlay-subtitle">All structural hearts lost. Connection failed.</p>
+          <h2 class="overlay-title">GAME OVER</h2>
+          <p class="overlay-subtitle">All lives lost. Better luck next time.</p>
           <div class="overlay-actions">
             <button id="btn-retry-level" class="btn btn-primary">Try Again</button>
             <button id="btn-gameover-menu" class="btn btn-danger">Exit</button>
@@ -200,8 +185,8 @@
     </div>
   </div>
 
-  <script src="src/js/levels.js?v=117"></script>
-  <script src="src/js/game.js?v=117"></script>
-  <script src="src/js/main.js?v=117"></script>
+  <script src="src/js/levels.js?v=130"></script>
+  <script src="src/js/game.js?v=130"></script>
+  <script src="src/js/main.js?v=130"></script>
 </body>
 </html>
