@@ -1012,7 +1012,7 @@ const ArrowGame = {
                 
                 let hitCart = ((exitPos - start + 48) % 48) <= ((end - start + 48) % 48);
                 if (hitCart) {
-                  if (a.color === cart.color && !cart.isEngine) {
+                  if (a.color === cart.color) {
                     match = true;
                   }
                   break;
