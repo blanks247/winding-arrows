@@ -262,7 +262,7 @@ const App = {
       card.style.top = `${(coord.y / TOTAL_HEIGHT) * 100}%`;
 
       const isFirst = id === 1;
-      const isUnlocked = true; // TEMPORARY UNLOCK ALL
+      const isUnlocked = isFirst || this.clearedLevels.includes(id - 1);
       const isCleared = this.clearedLevels.includes(id);
 
       if (isCleared) {
