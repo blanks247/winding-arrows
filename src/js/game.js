@@ -240,7 +240,7 @@ const ArrowGame = {
     const speedRow = document.getElementById('train-speed-control-row');
     const hudSpeedText = document.getElementById('hud-train-speed');
     if (speedRow) {
-      speedRow.style.display = (lvlData.id === 10 || lvlData.id === 20 || lvlData.id === 30) ? 'flex' : 'none';
+      speedRow.style.display = (lvlData.id === 10 || lvlData.id === 20 || lvlData.id === 30 || lvlData.id === 16) ? 'flex' : 'none';
     }
     if (hudSpeedText) {
       hudSpeedText.textContent = '1.0x';
@@ -447,9 +447,6 @@ const ArrowGame = {
       let shouldCheck = false;
       if (other.id !== movingArrow.id && other.status !== 'ESCAPED') {
         if (other.status !== 'ESCAPING') {
-          shouldCheck = true;
-        } else if (this.level && this.level.isMaze) {
-          // In maze levels, escaping arrows are massive snakes and MUST act as physical blockers!
           shouldCheck = true;
         }
       }
@@ -900,7 +897,7 @@ const ArrowGame = {
 
     // Update continuous perimeter cart glide positions
     if (this.carts) {
-      if (this.level && (this.level.id === 10 || this.level.id === 20 || this.level.id === 30)) {
+      if (this.level && (this.level.id === 10 || this.level.id === 20 || this.level.id === 30 || this.level.id === 16)) {
         this.trainPos = (this.trainPos + 0.035 * (this.trainSpeedMultiplier || 1.0)) % 48;
 
         // Spawn smoke particles at the locomotive chimney (approx 1.5 slots behind the head trainPos)
@@ -988,7 +985,7 @@ const ArrowGame = {
         }
 
         // Perimeter Carts matching check when reaching grid boundary
-        if (a.progress >= totalPathLen && (this.carts.length > 0 || (this.level && (this.level.id === 10 || this.level.id === 20 || this.level.id === 30))) && !a.checkedCart) {
+        if (a.progress >= totalPathLen && (this.carts.length > 0 || (this.level && (this.level.id === 10 || this.level.id === 20 || this.level.id === 30 || this.level.id === 16))) && !a.checkedCart) {
           a.checkedCart = true;
           const lastPt = a.smoothPath[a.smoothPath.length - 1];
           const prevPt = a.smoothPath[a.smoothPath.length - 2] || a.smoothPath[0];
@@ -1002,21 +999,41 @@ const ArrowGame = {
 
           const exitPos = this.getPerimeterPosFromExit(dir, finalCol, finalRow);
           let match = false;
-          if (this.level && (this.level.id === 10 || this.level.id === 20 || this.level.id === 30)) {
+          if (this.level && (this.level.id === 10 || this.level.id === 20 || this.level.id === 30 || this.level.id === 16)) {
             const trainPos = this.trainPos;
-            let start = 0, end = 0;
-            if (a.color === "#ab364f") { // Red
-              start = trainPos - 15; end = trainPos - 6;
-            } else if (a.color === "#3a69a4") { // Blue
-              start = trainPos - 26; end = trainPos - 17;
-            } else if (a.color === "#5e9554") { // Green
-              start = trainPos - 37; end = trainPos - 28;
-            } else if (a.color === "#1e1b18") { // Black
-              start = trainPos - 4; end = trainPos;
+            if (this.level.trainConfig) {
+              let currentOffset = 0;
+              for (let i = 0; i < this.level.trainConfig.length; i++) {
+                const cart = this.level.trainConfig[i];
+                const startOffset = currentOffset - cart.length;
+                
+                let start = (trainPos + startOffset + 48) % 48;
+                let end = (trainPos + currentOffset + 48) % 48;
+                
+                let hitCart = ((exitPos - start + 48) % 48) <= ((end - start + 48) % 48);
+                if (hitCart) {
+                  if (a.color === cart.color && !cart.isEngine) {
+                    match = true;
+                  }
+                  break;
+                }
+                currentOffset = startOffset - cart.gap;
+              }
+            } else {
+              let start = 0, end = 0;
+              if (a.color === "#ab364f") { // Red
+                start = trainPos - 15; end = trainPos - 6;
+              } else if (a.color === "#3a69a4") { // Blue
+                start = trainPos - 26; end = trainPos - 17;
+              } else if (a.color === "#5e9554") { // Green
+                start = trainPos - 37; end = trainPos - 28;
+              } else if (a.color === "#1e1b18") { // Black
+                start = trainPos - 4; end = trainPos;
+              }
+              start = (start + 48) % 48;
+              end = (end + 48) % 48;
+              match = ((exitPos - start + 48) % 48) <= ((end - start + 48) % 48);
             }
-            start = (start + 48) % 48;
-            end = (end + 48) % 48;
-            match = ((exitPos - start + 48) % 48) <= ((end - start + 48) % 48);
           } else {
             const cart = this.carts.find(c => {
               let diff = Math.abs(c.pos - exitPos);
@@ -1310,7 +1327,7 @@ const ArrowGame = {
     }
 
     // Draw continuous perimeter guide track (if level has carts)
-    if ((this.carts && this.carts.length > 0) || (this.level && (this.level.id === 10 || this.level.id === 20 || this.level.id === 30))) {
+    if ((this.carts && this.carts.length > 0) || (this.level && (this.level.id === 10 || this.level.id === 20 || this.level.id === 30 || this.level.id === 16))) {
       this.ctx.save();
       this.ctx.strokeStyle = '#e5dfcf';
       this.ctx.lineWidth = 20;
@@ -1371,19 +1388,38 @@ const ArrowGame = {
 
     // Draw Perimeter Carts
     if (this.carts) {
-      if (this.level && (this.level.id === 10 || this.level.id === 20 || this.level.id === 30)) {
+      if (this.level && (this.level.id === 10 || this.level.id === 20 || this.level.id === 30 || this.level.id === 16)) {
         const trainPos = this.trainPos;
 
-        // Draw linkages
-        this.drawLinkage(trainPos - 6, trainPos - 4); // Engine to Red
-        this.drawLinkage(trainPos - 17, trainPos - 15); // Red to Blue
-        this.drawLinkage(trainPos - 28, trainPos - 26); // Blue to Green
-
-        // Draw segments
-        this.drawTrainSegment("#1e1b18", trainPos - 4, trainPos, true); // Black Engine
-        this.drawTrainSegment("#ab364f", trainPos - 15, trainPos - 6, false); // Red Cart
-        this.drawTrainSegment("#3a69a4", trainPos - 26, trainPos - 17, false); // Blue Cart
-        this.drawTrainSegment("#5e9554", trainPos - 37, trainPos - 28, false); // Green Cart
+        if (this.level.trainConfig) {
+          let currentOffset = 0;
+          for (let i = 0; i < this.level.trainConfig.length - 1; i++) {
+            const cart = this.level.trainConfig[i];
+            const startOffset = currentOffset - cart.length;
+            const linkStart = startOffset - cart.gap;
+            const linkEnd = startOffset;
+            if (cart.gap > 0) {
+              this.drawLinkage(trainPos + linkStart, trainPos + linkEnd);
+            }
+            currentOffset = linkStart;
+          }
+          currentOffset = 0;
+          for (let i = 0; i < this.level.trainConfig.length; i++) {
+            const cart = this.level.trainConfig[i];
+            const startOffset = currentOffset - cart.length;
+            this.drawTrainSegment(cart.color, trainPos + startOffset, trainPos + currentOffset, cart.isEngine);
+            currentOffset = startOffset - cart.gap;
+          }
+        } else {
+          // Fallback legacy train
+          this.drawLinkage(trainPos - 6, trainPos - 4);
+          this.drawLinkage(trainPos - 17, trainPos - 15);
+          this.drawLinkage(trainPos - 28, trainPos - 26);
+          this.drawTrainSegment("#1e1b18", trainPos - 4, trainPos, true);
+          this.drawTrainSegment("#ab364f", trainPos - 15, trainPos - 6, false);
+          this.drawTrainSegment("#3a69a4", trainPos - 26, trainPos - 17, false);
+          this.drawTrainSegment("#5e9554", trainPos - 37, trainPos - 28, false);
+        }
       } else {
         this.carts.forEach(c => {
           for (let car = 0; car < 3; car++) {
@@ -1584,7 +1620,10 @@ const ArrowGame = {
       }
 
       // Draw thick polyline stroke body
-      this.ctx.strokeStyle = a.color;
+      const isColliding = (a.status === 'COLLIDED' || a.status === 'REBOUNDING');
+      const drawColor = isColliding ? ((Date.now() % 200 < 100) ? '#ffffff' : '#ff0000') : a.color;
+
+      this.ctx.strokeStyle = drawColor;
       this.ctx.lineWidth = 4 * a.strokeWidth;
       this.ctx.lineCap = 'round';
       this.ctx.lineJoin = 'round';
@@ -1605,7 +1644,7 @@ const ArrowGame = {
 
       // Draw inner core line only for regular short arrows
       if (!this.level || !this.level.isMaze) {
-        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
+        this.ctx.strokeStyle = isColliding ? 'rgba(255, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.22)';
         this.ctx.lineWidth = 1.0 * a.strokeWidth;
         this.drawPolylinePath(a);
         this.ctx.stroke();
@@ -1769,7 +1808,10 @@ const ArrowGame = {
     this.ctx.rotate(angle);
 
     // Draw sleek flat arrowhead
-    this.ctx.fillStyle = a.color;
+    const isColliding = (a.status === 'COLLIDED' || a.status === 'REBOUNDING');
+    const drawColor = isColliding ? ((Date.now() % 200 < 100) ? '#ffffff' : '#ff0000') : a.color;
+    
+    this.ctx.fillStyle = drawColor;
     this.ctx.beginPath();
     const w = 5 * a.strokeWidth;
     const h = 6 * a.strokeWidth;

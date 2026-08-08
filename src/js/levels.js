@@ -748,6 +748,27 @@ function generateProceduralLevel(levelId, options = {}) {
   return {
     id: levelId,
     name: `Sector Map ${levelId}`,
+    trainConfig: (levelId === 16) ? [
+      { color: "#1e1b18", isEngine: true, length: 3, gap: 1 },
+      { color: "#ab364f", isEngine: false, length: 3, gap: 1 },
+      { color: "#3a69a4", isEngine: false, length: 3, gap: 1 },
+      { color: "#5e9554", isEngine: false, length: 3, gap: 1 },
+      
+      { color: "#1e1b18", isEngine: false, length: 3, gap: 1 },
+      { color: "#ab364f", isEngine: false, length: 3, gap: 1 },
+      { color: "#3a69a4", isEngine: false, length: 3, gap: 1 },
+      { color: "#5e9554", isEngine: false, length: 3, gap: 1 },
+      
+      { color: "#1e1b18", isEngine: false, length: 3, gap: 1 },
+      { color: "#ab364f", isEngine: false, length: 3, gap: 1 },
+      { color: "#3a69a4", isEngine: false, length: 3, gap: 1 },
+      { color: "#5e9554", isEngine: false, length: 3, gap: 1 }
+    ] : (isTrain ? [
+      { color: "#1e1b18", isEngine: true, length: 4, gap: 2 },
+      { color: "#ab364f", isEngine: false, length: 9, gap: 2 },
+      { color: "#3a69a4", isEngine: false, length: 9, gap: 2 },
+      { color: "#5e9554", isEngine: false, length: 9, gap: 2 }
+    ] : undefined),
     gates,
     carts,
     reflectors,
@@ -1009,6 +1030,13 @@ function generateMazeProceduralLevel(levelId) {
   return {
     id: levelId,
     name: `Maze Sector ${levelId}`,
+    isTrain,
+    trainConfig: isTrain ? [
+      { color: "#1e1b18", isEngine: true, length: 4, gap: 2 },
+      { color: "#ab364f", isEngine: false, length: 9, gap: 2 },
+      { color: "#3a69a4", isEngine: false, length: 9, gap: 2 },
+      { color: "#5e9554", isEngine: false, length: 9, gap: 2 }
+    ] : undefined,
     isMaze: true,
     gates,
     carts: [],
@@ -1032,8 +1060,8 @@ function getLevel(levelId) {
     return generateProceduralLevel(levelId);
   }
   
-  // Use the train script for level 10
-  if (levelId === 10) {
+  // Use the train script for level 10 and 16
+  if (levelId === 10 || levelId === 16) {
     return generateProceduralLevel(levelId, { isTrain: true });
   }
 
