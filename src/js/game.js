@@ -2,6 +2,12 @@
 
 const SoundSystem = {
   ctx: null,
+  sfxEnabled: true,
+  musicEnabled: true,
+  trainOsc1: null,
+  trainOsc2: null,
+  trainGain: null,
+  trainInterval: null,
 
   init() {
     try {
@@ -15,6 +21,7 @@ const SoundSystem = {
 
   playSelect() {
     try {
+      if (!this.sfxEnabled) return;
       this.init();
       if (!this.ctx) return;
       const osc = this.ctx.createOscillator();
@@ -33,6 +40,7 @@ const SoundSystem = {
 
   playWhoosh() {
     try {
+      if (!this.sfxEnabled) return;
       this.init();
       if (!this.ctx) return;
       const osc = this.ctx.createOscillator();
@@ -47,14 +55,72 @@ const SoundSystem = {
       gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.2);
 
       osc.start();
-      osc.stop(this.ctx.currentTime + 0.2);
+      osc.stop(this.ctx.currentTime + 0.4);
     } catch (e) {
-      console.warn("Audio playback whoosh failed:", e);
+      console.warn("Audio playback win failed:", e);
+    }
+  },
+
+  playTrainMusic() {
+    if (!this.musicEnabled) return;
+    this.init();
+    if (!this.ctx || this.trainInterval) return;
+
+    if (this.ctx.state === 'suspended') {
+      this.ctx.resume();
+    }
+
+    this.trainGain = this.ctx.createGain();
+    this.trainGain.connect(this.ctx.destination);
+    this.trainGain.gain.value = 0;
+
+    let tick = 0;
+    this.trainInterval = setInterval(() => {
+      if (this.ctx.state === 'suspended') this.ctx.resume();
+      
+      const t = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.connect(gain);
+      gain.connect(this.trainGain);
+
+      // Chug-chug rhythm pattern
+      if (tick % 4 === 0) {
+        osc.frequency.setValueAtTime(100, t);
+        gain.gain.setValueAtTime(0.05, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+      } else {
+        osc.frequency.setValueAtTime(120, t);
+        gain.gain.setValueAtTime(0.02, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+      }
+
+      osc.start(t);
+      osc.stop(t + 0.2);
+      
+      tick++;
+    }, 250); // 16th notes at approx 120bpm
+
+    this.trainGain.gain.linearRampToValueAtTime(0.8, this.ctx.currentTime + 1.0);
+  },
+
+  stopTrainMusic() {
+    if (this.trainInterval) {
+      clearInterval(this.trainInterval);
+      this.trainInterval = null;
+    }
+    if (this.trainGain) {
+      this.trainGain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.5);
+      setTimeout(() => {
+        if (this.trainGain) this.trainGain.disconnect();
+        this.trainGain = null;
+      }, 500);
     }
   },
 
   playBuzzer() {
     try {
+      if (!this.sfxEnabled) return;
       this.init();
       if (!this.ctx) return;
       const osc = this.ctx.createOscillator();
@@ -76,6 +142,7 @@ const SoundSystem = {
 
   playWin() {
     try {
+      if (!this.sfxEnabled) return;
       this.init();
       if (!this.ctx) return;
       const now = this.ctx.currentTime;
@@ -257,6 +324,16 @@ const ArrowGame = {
       if (tutorialOverlay) {
         tutorialOverlay.classList.remove('active');
       }
+    }
+
+    if (lvlData.trainConfig) {
+      if (window.App && window.App.updateSettingsUI) {
+         window.App.updateSettingsUI();
+      } else if (SoundSystem.musicEnabled) {
+         SoundSystem.playTrainMusic();
+      }
+    } else {
+      SoundSystem.stopTrainMusic();
     }
 
     this.updateHUD();
@@ -1007,8 +1084,8 @@ const ArrowGame = {
                 const cart = this.level.trainConfig[i];
                 const startOffset = currentOffset - cart.length;
                 
-                let start = (trainPos + startOffset + 48) % 48;
-                let end = (trainPos + currentOffset + 48) % 48;
+                let start = (trainPos + startOffset - 0.5 + 48) % 48;
+                let end = (trainPos + currentOffset + 0.5 + 48) % 48;
                 
                 let hitCart = ((exitPos - start + 48) % 48) <= ((end - start + 48) % 48);
                 if (hitCart) {
@@ -1030,8 +1107,8 @@ const ArrowGame = {
               } else if (a.color === "#1e1b18") { // Black
                 start = trainPos - 4; end = trainPos;
               }
-              start = (start + 48) % 48;
-              end = (end + 48) % 48;
+              start = (start - 0.5 + 48) % 48;
+              end = (end + 0.5 + 48) % 48;
               match = ((exitPos - start + 48) % 48) <= ((end - start + 48) % 48);
             }
           } else {
@@ -1049,6 +1126,20 @@ const ArrowGame = {
             a.checkedCart = false;
             SoundSystem.playBuzzer();
             this.spawnGlitch(lastPt.x, lastPt.y, "#ab364f", 10);
+            
+            // Decrement Hearts on collision
+            this.hearts = Math.max(0, (this.hearts !== undefined ? this.hearts : 3) - 1);
+            if (document.getElementById('hud-hearts')) {
+              document.getElementById('hud-hearts').innerHTML = '❤️️'.repeat(this.hearts);
+            }
+            if (this.hearts === 0) {
+              this.gameState = 'FAIL';
+              setTimeout(() => {
+                const overlay = document.getElementById('gameover-overlay');
+                if (overlay) overlay.classList.add('active');
+              }, 500);
+            }
+            
             return;
           }
         }

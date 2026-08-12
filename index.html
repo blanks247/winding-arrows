@@ -39,16 +39,36 @@
         </div>
         <div class="menu-actions">
           <button id="btn-play" class="btn btn-start-hero">Start Escape</button>
+          <button id="btn-settings" class="btn btn-secondary" style="margin-top: 12px;">⚙️ Settings</button>
         </div>
         <div class="menu-footer">
         </div>
       </div>
 
+      <!-- ================= SETTINGS OVERLAY ================= -->
+      <div id="settings-overlay" class="overlay">
+        <div class="overlay-card settings-card" style="max-width: 320px; padding: 32px 24px; border-radius: 28px; background: rgba(253, 251, 247, 0.95); backdrop-filter: blur(12px);">
+          <h2 class="overlay-title" style="margin-bottom: 24px; font-size: 1.6rem; color: #57534e;">SETTINGS</h2>
+          <div style="display: flex; flex-direction: column; gap: 16px; width: 100%;">
+            <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.03); padding: 12px 16px; border-radius: 16px;">
+              <span style="font-weight: 700; font-size: 1.05rem; color: #444;">Sound Effects (SFX)</span>
+              <button id="btn-toggle-sfx" class="btn-toggle-styled">ON</button>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.03); padding: 12px 16px; border-radius: 16px;">
+              <span style="font-weight: 700; font-size: 1.05rem; color: #444;">Music</span>
+              <button id="btn-toggle-music" class="btn-toggle-styled">ON</button>
+            </div>
+          </div>
+          <div class="overlay-actions" style="margin-top: 28px;">
+            <button id="btn-settings-close" class="btn btn-primary" style="width: 100%;">DONE</button>
+          </div>
+        </div>
+      </div>
+
       <!-- ================= LEVEL SELECT SCREEN ================= -->
       <div id="level-select-screen" class="screen">
-        <div class="screen-header" style="z-index: 10;">
+        <div class="screen-header" style="z-index: 10; padding: 16px 20px;">
           <button id="btn-level-back" class="btn btn-icon">◀</button>
-          <h2>Sectors</h2>
         </div>
         <div class="levels-scroll-area">
           <div id="levels-grid" class="levels-grid">
@@ -111,12 +131,25 @@
       <!-- ================= PAUSE OVERLAY ================= -->
       <div id="pause-overlay" class="overlay">
         <div class="overlay-card">
-          <h2 class="overlay-title">PAUSED</h2>
-          <p class="overlay-subtitle">Polyline vectors frozen. System paused.</p>
-          <div class="overlay-actions">
-            <button id="btn-resume-game" class="btn btn-primary">Resume</button>
-            <button id="btn-restart-game" class="btn btn-secondary">Restart</button>
-            <button id="btn-exit-game" class="btn btn-danger">Exit</button>
+          <h2 class="overlay-title" style="margin-bottom: 16px;">PAUSED</h2>
+          
+          <div style="display: flex; flex-direction: column; gap: 12px; width: 100%; margin-bottom: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.04); padding: 10px 16px; border-radius: 14px;">
+              <span style="font-weight: 700; font-size: 0.95rem; color: #444;">Sound Effects</span>
+              <button id="btn-toggle-sfx-pause" class="btn-toggle-styled">ON</button>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.04); padding: 10px 16px; border-radius: 14px;">
+              <span style="font-weight: 700; font-size: 0.95rem; color: #444;">Music</span>
+              <button id="btn-toggle-music-pause" class="btn-toggle-styled">ON</button>
+            </div>
+          </div>
+
+          <div class="overlay-actions" style="display: flex; flex-direction: column; gap: 10px;">
+            <button id="btn-resume-game" class="btn btn-primary" style="width: 100%;">Resume</button>
+            <div style="display: flex; gap: 10px;">
+              <button id="btn-restart-game" class="btn btn-secondary" style="flex: 1;">Restart</button>
+              <button id="btn-exit-game" class="btn btn-danger" style="flex: 1;">Exit</button>
+            </div>
           </div>
         </div>
       </div>
@@ -185,8 +218,8 @@
     </div>
   </div>
 
-  <script src="src/js/levels.js?v=140"></script>
-  <script src="src/js/game.js?v=140"></script>
-  <script src="src/js/main.js?v=140"></script>
+  <script src="src/js/levels.js?v=148"></script>
+  <script src="src/js/game.js?v=148"></script>
+  <script src="src/js/main.js?v=148"></script>
 </body>
 </html>

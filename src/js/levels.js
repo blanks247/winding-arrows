@@ -1068,13 +1068,10 @@ function getLevel(levelId) {
   // From level 11 to 500, we mix them using seeded random based on levelId
   const rand = SeededRandom(levelId * 777);
   
-  // 15% chance for Train level, 25% chance for Maze/Splitter level, 60% basic
+  // 35% chance for Maze/Splitter level, 65% basic (Train level is ONLY for Level 10 and 16)
   const typeRoll = rand();
   
-  if (typeRoll < 0.15) {
-    // Train Level
-    return generateProceduralLevel(levelId, { isTrain: true });
-  } else if (typeRoll < 0.40) {
+  if (typeRoll < 0.35) {
     // Maze/Splitter Level (new script)
     return generateMazeProceduralLevel(levelId);
   } else {

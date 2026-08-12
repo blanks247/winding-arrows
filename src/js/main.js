@@ -3,8 +3,14 @@
 const App = {
   activeScreen: 'menu-screen',
   clearedLevels: [],
+  sfxEnabled: true,
+  musicEnabled: true,
 
   init() {
+    this.sfxEnabled = localStorage.getItem('winding_arrows_sfx') !== 'false';
+    this.musicEnabled = localStorage.getItem('winding_arrows_music') !== 'false';
+    this.updateSettingsUI();
+
     ArrowGame.init();
     this.loadProgress();
     this.bindEvents();
@@ -48,9 +54,94 @@ const App = {
   updateGlobalHUD() {
   },
 
+  updateSettingsUI() {
+    const btnToggleSfx = document.getElementById('btn-toggle-sfx');
+    const btnToggleMusic = document.getElementById('btn-toggle-music');
+    const btnToggleSfxPause = document.getElementById('btn-toggle-sfx-pause');
+    const btnToggleMusicPause = document.getElementById('btn-toggle-music-pause');
+
+    const updateBtn = (btn, enabled) => {
+      if (!btn) return;
+      btn.textContent = enabled ? "ON" : "OFF";
+      btn.style.backgroundColor = enabled ? "#b9fbc0" : "#e5e5e5";
+      btn.style.color = enabled ? "#276749" : "#666";
+      btn.style.border = "none";
+      btn.style.borderRadius = "20px";
+      btn.style.padding = "6px 16px";
+      btn.style.fontWeight = "bold";
+      btn.style.boxShadow = "inset 0 -2px 0 rgba(0,0,0,0.1)";
+      btn.style.cursor = "pointer";
+      btn.style.transition = "all 0.2s ease";
+    };
+
+    updateBtn(btnToggleSfx, this.sfxEnabled);
+    updateBtn(btnToggleSfxPause, this.sfxEnabled);
+    updateBtn(btnToggleMusic, this.musicEnabled);
+    updateBtn(btnToggleMusicPause, this.musicEnabled);
+    if (typeof SoundSystem !== 'undefined') {
+      SoundSystem.sfxEnabled = this.sfxEnabled;
+      SoundSystem.musicEnabled = this.musicEnabled;
+      if (!this.musicEnabled && SoundSystem.stopTrainMusic) {
+        SoundSystem.stopTrainMusic();
+      } else if (this.musicEnabled && SoundSystem.playTrainMusic && typeof ArrowGame !== 'undefined' && ArrowGame.level && ArrowGame.level.trainConfig) {
+        SoundSystem.playTrainMusic();
+      }
+    }
+  },
+
   bindEvents() {
     document.getElementById('btn-play').addEventListener('click', () => this.showScreen('level-select-screen'));
     document.getElementById('btn-level-back').addEventListener('click', () => this.showScreen('menu-screen'));
+
+    // Settings
+    document.getElementById('btn-settings').addEventListener('click', () => {
+      SoundSystem.playSelect();
+      document.getElementById('settings-overlay').classList.add('active');
+    });
+    
+    document.getElementById('btn-settings-close').addEventListener('click', () => {
+      SoundSystem.playSelect();
+      document.getElementById('settings-overlay').classList.remove('active');
+    });
+    
+    // Close overlays when clicking outside the card
+    document.querySelectorAll('.overlay').forEach(overlay => {
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+          if (overlay.id === 'settings-overlay') {
+            SoundSystem.playSelect();
+            overlay.classList.remove('active');
+          } else if (overlay.id === 'pause-overlay') {
+            SoundSystem.playSelect();
+            overlay.classList.remove('active');
+            ArrowGame.active = true;
+          }
+        }
+      });
+    });
+
+    const toggleSfx = () => {
+      this.sfxEnabled = !this.sfxEnabled;
+      localStorage.setItem('winding_arrows_sfx', this.sfxEnabled);
+      this.updateSettingsUI();
+      SoundSystem.playSelect();
+    };
+
+    const toggleMusic = () => {
+      this.musicEnabled = !this.musicEnabled;
+      localStorage.setItem('winding_arrows_music', this.musicEnabled);
+      this.updateSettingsUI();
+      SoundSystem.playSelect();
+    };
+
+    document.getElementById('btn-toggle-sfx').addEventListener('click', toggleSfx);
+    document.getElementById('btn-toggle-music').addEventListener('click', toggleMusic);
+    
+    const pauseToggleSfx = document.getElementById('btn-toggle-sfx-pause');
+    if (pauseToggleSfx) pauseToggleSfx.addEventListener('click', toggleSfx);
+    
+    const pauseToggleMusic = document.getElementById('btn-toggle-music-pause');
+    if (pauseToggleMusic) pauseToggleMusic.addEventListener('click', toggleMusic);
 
     // Game Inputs
     document.getElementById('btn-undo').addEventListener('click', () => ArrowGame.undoMove());
