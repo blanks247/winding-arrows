@@ -37,15 +37,20 @@ jobs:
           cd android
           chmod +x gradlew
 
+      - name: Generate Release Keystore
+        run: |
+          keytool -genkey -v -keystore release.keystore -alias windingkey -keyalg RSA -keysize 2048 -validity 10000 -storepass windingpassword -keypass windingpassword -dname "CN=WindingArrows, OU=Games, O=WindingArrows, L=City, ST=State, C=US"
+
       - name: Build Android APK (Testing)
         run: |
           cd android
           ./gradlew assembleDebug --stacktrace
 
-      - name: Build Android App Bundle AAB (Play Store)
+      - name: Build & Sign Android App Bundle AAB (Play Store)
         run: |
           cd android
           ./gradlew bundleRelease --stacktrace
+          jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 -keystore ../release.keystore app/build/outputs/bundle/release/app-release.aab windingkey -storepass windingpassword -keypass windingpassword
 
       - name: Upload APK Artifact (Direct Phone Install)
         uses: actions/upload-artifact@v4
@@ -53,7 +58,7 @@ jobs:
           name: WindingArrows-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
 
-      - name: Upload AAB Artifact (Google Play Store)
+      - name: Upload Signed AAB Artifact (Google Play Store)
         uses: actions/upload-artifact@v4
         with:
           name: WindingArrows-PlayStore-AAB
