@@ -2,6 +2,9 @@
 node_modules/
 dist/
 *.zip
+*.ps1
+scratch/
+playstore_assets/
 android/app/build/
 android/.gradle/
 android/local.properties
