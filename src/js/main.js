@@ -296,9 +296,35 @@ const App = {
     const pauseToggleMusic = document.getElementById('btn-toggle-music-pause');
     if (pauseToggleMusic) pauseToggleMusic.addEventListener('click', toggleMusic);
 
+// Google AdMob Rewarded Ads Manager (Ready for Future Activation)
+const AdMobManager = {
+  adMobEnabled: false, // Change to true when ready to show AdMob ads!
+  rewardedAdUnitId: 'ca-app-pub-3940256099942544/5224354917', // Test Rewarded Ad Unit ID
+
+  async showRewardedAdForHint(onRewardCallback) {
+    if (this.adMobEnabled && window.Capacitor && window.Capacitor.isPluginAvailable('AdMob')) {
+      try {
+        const { AdMob } = window.Capacitor.Plugins;
+        await AdMob.prepareRewardVideoAd({ adId: this.rewardedAdUnitId });
+        await AdMob.showRewardVideoAd();
+        if (onRewardCallback) onRewardCallback();
+      } catch (err) {
+        console.log('AdMob ad fallback:', err);
+        if (onRewardCallback) onRewardCallback();
+      }
+    } else {
+      if (onRewardCallback) onRewardCallback();
+    }
+  }
+};
+
     // Game Inputs
     document.getElementById('btn-undo').addEventListener('click', () => ArrowGame.undoMove());
-    document.getElementById('btn-hint').addEventListener('click', () => ArrowGame.triggerHint());
+    document.getElementById('btn-hint').addEventListener('click', () => {
+      AdMobManager.showRewardedAdForHint(() => {
+        ArrowGame.triggerHint();
+      });
+    });
 
     // Restart level direct button
     document.getElementById('btn-restart-game-direct').addEventListener('click', () => {
