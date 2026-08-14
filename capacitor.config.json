@@ -1,5 +1,15 @@
 {
   "appId": "com.windingarrows.puzzleescape",
   "appName": "Winding Arrows",
-  "webDir": "dist"
+  "webDir": "dist",
+  "backgroundColor": "#fdfbf7",
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 0,
+      "launchAutoHide": true,
+      "backgroundColor": "#fdfbf7",
+      "androidScaleType": "CENTER_CROP",
+      "showSpinner": false
+    }
+  }
 }

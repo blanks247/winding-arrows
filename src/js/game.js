@@ -1841,9 +1841,15 @@ const ArrowGame = {
         this.ctx.restore();
       }
 
-      this.ctx.shadowColor = 'rgba(104, 92, 76, 0.16)';
-      this.ctx.shadowBlur = 6;
-      this.ctx.shadowOffsetY = 3.5;
+      if (a.status === 'IDLE') {
+        this.ctx.shadowColor = 'rgba(104, 92, 76, 0.14)';
+        this.ctx.shadowBlur = 3;
+        this.ctx.shadowOffsetY = 2;
+      } else {
+        this.ctx.shadowColor = 'transparent';
+        this.ctx.shadowBlur = 0;
+        this.ctx.shadowOffsetY = 0;
+      }
 
       // Draw starting tail chevron fletching indicator
       const totalLen = this.getPathLength(a.smoothPath);
@@ -2164,28 +2170,11 @@ const ArrowGame = {
   },
 
   spawnTouchRipple(x, y) {
-    if (!this.touchRipples) this.touchRipples = [];
-    this.touchRipples.push({ x, y, radius: 4, alpha: 0.85, maxRadius: 32 });
+    // Gold touch ripple disabled per user request
   },
 
   drawTouchRipples() {
-    if (!this.touchRipples || this.touchRipples.length === 0) return;
-    this.ctx.save();
-    for (let i = this.touchRipples.length - 1; i >= 0; i--) {
-      const r = this.touchRipples[i];
-      r.radius += 1.8;
-      r.alpha -= 0.04;
-      if (r.alpha <= 0 || r.radius >= r.maxRadius) {
-        this.touchRipples.splice(i, 1);
-        continue;
-      }
-      this.ctx.strokeStyle = `rgba(245, 158, 11, ${r.alpha})`;
-      this.ctx.lineWidth = 2.5;
-      this.ctx.beginPath();
-      this.ctx.arc(r.x, r.y, r.radius, 0, Math.PI * 2);
-      this.ctx.stroke();
-    }
-    this.ctx.restore();
+    // Gold touch ripple disabled per user request
   },
 
   initAmbientBackdropParticles() {

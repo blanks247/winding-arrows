@@ -40,8 +40,32 @@ const App = {
     window.addEventListener('touchstart', startAppBGM, { once: true });
     window.addEventListener('click', startAppBGM, { once: true });
 
-    // Intercept native Android device Back Key triggers
-    window.onAndroidBack = () => {
+    // Pause background audio when app goes to background / power button pressed
+    const handleVisibilityOrPause = () => {
+      if (document.hidden || document.visibilityState === 'hidden') {
+        if (typeof SoundSystem !== 'undefined' && SoundSystem.stopTrainMusic) {
+          SoundSystem.stopTrainMusic();
+        }
+        if (typeof SoundSystem !== 'undefined' && SoundSystem.ctx && SoundSystem.ctx.state === 'running') {
+          SoundSystem.ctx.suspend();
+        }
+      } else {
+        if (typeof SoundSystem !== 'undefined' && SoundSystem.ctx && SoundSystem.ctx.state === 'suspended') {
+          SoundSystem.ctx.resume();
+        }
+        if (this.musicEnabled && typeof SoundSystem !== 'undefined' && SoundSystem.playTrainMusic) {
+          SoundSystem.playTrainMusic();
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityOrPause);
+    window.addEventListener('pagehide', handleVisibilityOrPause);
+    window.addEventListener('blur', handleVisibilityOrPause);
+    window.addEventListener('focus', handleVisibilityOrPause);
+
+    // Intercept native Android device Back Key & Gesture Navigation triggers
+    const handleBackButton = () => {
       if (this.activeScreen === 'gameplay-screen') {
         this.showScreen('level-select-screen');
         this.renderLevelSelect();
@@ -52,6 +76,21 @@ const App = {
       }
       return "exit";
     };
+
+    window.onAndroidBack = handleBackButton;
+
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+      const { App: CapApp } = window.Capacitor.Plugins;
+      CapApp.addListener('appStateChange', () => {
+        handleVisibilityOrPause();
+      });
+      CapApp.addListener('backButton', () => {
+        const res = handleBackButton();
+        if (res === 'exit') {
+          CapApp.exitApp();
+        }
+      });
+    }
   },
 
   loadProgress() {
