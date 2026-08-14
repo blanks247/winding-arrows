@@ -16,6 +16,30 @@ const App = {
     this.bindEvents();
     this.renderLevelSelect();
 
+    // Auto-transition from Splash Screen to Main Menu after 1.6s
+    setTimeout(() => {
+      const splash = document.getElementById('splash-screen');
+      const menu = document.getElementById('menu-screen');
+      if (splash) {
+        splash.style.opacity = '0';
+        setTimeout(() => {
+          splash.classList.remove('active');
+          splash.style.display = 'none';
+          if (menu) menu.classList.add('active');
+        }, 500);
+      }
+    }, 1600);
+
+    // Start background music continuously from game opening onwards on first user interaction
+    const startAppBGM = () => {
+      if (this.musicEnabled && typeof SoundSystem !== 'undefined') {
+        SoundSystem.playTrainMusic();
+      }
+    };
+    window.addEventListener('pointerdown', startAppBGM, { once: true });
+    window.addEventListener('touchstart', startAppBGM, { once: true });
+    window.addEventListener('click', startAppBGM, { once: true });
+
     // Intercept native Android device Back Key triggers
     window.onAndroidBack = () => {
       if (this.activeScreen === 'gameplay-screen') {
@@ -34,6 +58,31 @@ const App = {
     this.clearedLevels = JSON.parse(localStorage.getItem('winding_cleared_levels')) || [];
   },
 
+  getCurrentUnlockedLevelId() {
+    this.loadProgress();
+    if (!this.clearedLevels || this.clearedLevels.length === 0) return 1;
+    const maxCleared = Math.max(...this.clearedLevels);
+    return Math.min(500, maxCleared + 1);
+  },
+
+  scrollToCurrentLevel(smooth = true) {
+    const scrollArea = document.querySelector('.levels-scroll-area');
+    const grid = document.getElementById('levels-grid');
+    if (!scrollArea || !grid) return;
+
+    const activeCard = grid.querySelector('.level-card.active-unlocked') || grid.querySelector('.level-card');
+    if (activeCard) {
+      const cardTop = activeCard.offsetTop;
+      const containerHeight = scrollArea.clientHeight;
+      const targetScroll = Math.max(0, cardTop - containerHeight / 2 + activeCard.offsetHeight / 2);
+
+      scrollArea.scrollTo({
+        top: targetScroll,
+        behavior: smooth ? 'smooth' : 'auto'
+      });
+    }
+  },
+
   showScreen(screenId) {
     SoundSystem.playSelect();
     
@@ -48,6 +97,13 @@ const App = {
 
     if (screenId === 'menu-screen') {
       this.updateGlobalHUD();
+    } else if (screenId === 'level-select-screen') {
+      this.renderLevelSelect();
+      // Ensure view lands dynamically at current level area under any scenario
+      requestAnimationFrame(() => {
+        this.scrollToCurrentLevel(false);
+        setTimeout(() => this.scrollToCurrentLevel(true), 80);
+      });
     }
   },
 
@@ -83,7 +139,7 @@ const App = {
       SoundSystem.musicEnabled = this.musicEnabled;
       if (!this.musicEnabled && SoundSystem.stopTrainMusic) {
         SoundSystem.stopTrainMusic();
-      } else if (this.musicEnabled && SoundSystem.playTrainMusic && typeof ArrowGame !== 'undefined' && ArrowGame.level && ArrowGame.level.trainConfig) {
+      } else if (this.musicEnabled && SoundSystem.playTrainMusic) {
         SoundSystem.playTrainMusic();
       }
     }
@@ -92,6 +148,103 @@ const App = {
   bindEvents() {
     document.getElementById('btn-play').addEventListener('click', () => this.showScreen('level-select-screen'));
     document.getElementById('btn-level-back').addEventListener('click', () => this.showScreen('menu-screen'));
+
+    // Floating Action Button (FAB) listener
+    const fabBtn = document.getElementById('fab-current-level');
+    if (fabBtn) {
+      fabBtn.addEventListener('click', () => {
+        SoundSystem.playSelect();
+        const curId = this.getCurrentUnlockedLevelId();
+        this.scrollToCurrentLevel(true);
+        setTimeout(() => {
+          const lvl = getLevel(curId);
+          this.showScreen('gameplay-screen');
+          ArrowGame.startLevel(lvl);
+        }, 150);
+      });
+    }
+
+    // Train Speed & Horn Control Pill Listeners
+    const speedToggleBtn = document.getElementById('btn-train-speed-toggle');
+    if (speedToggleBtn) {
+      speedToggleBtn.addEventListener('click', () => {
+        SoundSystem.playSelect();
+        const speeds = [1.0, 1.5, 2.0, 0.5];
+        const curSpd = ArrowGame.trainSpeedMultiplier || 1.0;
+        let nextIdx = (speeds.indexOf(curSpd) + 1) % speeds.length;
+        if (nextIdx === -1) nextIdx = 0;
+        
+        const newSpd = speeds[nextIdx];
+        ArrowGame.trainSpeedMultiplier = newSpd;
+        
+        const valEl = document.getElementById('train-speed-val');
+        const iconEl = speedToggleBtn.querySelector('.pill-icon');
+        if (valEl) valEl.textContent = `${newSpd.toFixed(1)}x`;
+        if (iconEl) iconEl.textContent = newSpd === 0.5 ? '🐢' : '⚡';
+      });
+    }
+
+    const btnHorn = document.getElementById('btn-train-horn');
+    if (btnHorn) {
+      btnHorn.addEventListener('click', () => {
+        SoundSystem.playTrainHorn();
+        ArrowGame.shakeIntensity = 3.5;
+      });
+    }
+
+    // Train Walkthrough Navigation Listeners
+    const btnWtNext1 = document.getElementById('btn-wt-next-1');
+    if (btnWtNext1) {
+      btnWtNext1.addEventListener('click', () => {
+        SoundSystem.playSelect();
+        document.getElementById('wt-step-1').classList.remove('active');
+        document.getElementById('wt-step-2').classList.add('active');
+        document.getElementById('wt-dot-1').classList.remove('active');
+        document.getElementById('wt-dot-2').classList.add('active');
+      });
+    }
+
+    const btnWtDemoTap = document.getElementById('btn-wt-demo-tap');
+    if (btnWtDemoTap) {
+      btnWtDemoTap.addEventListener('click', () => {
+        SoundSystem.playSelect();
+        const carriage = document.getElementById('demo-carriage');
+        const arrow = document.getElementById('demo-arrow');
+        const next2Btn = document.getElementById('btn-wt-next-2');
+
+        if (carriage) carriage.style.left = '100px';
+        setTimeout(() => {
+          if (arrow) arrow.style.bottom = '52px';
+          SoundSystem.playWin();
+          setTimeout(() => {
+            if (arrow) arrow.style.opacity = '0';
+            if (btnWtDemoTap) btnWtDemoTap.style.display = 'none';
+            if (next2Btn) next2Btn.style.display = 'block';
+          }, 400);
+        }, 300);
+      });
+    }
+
+    const btnWtNext2 = document.getElementById('btn-wt-next-2');
+    if (btnWtNext2) {
+      btnWtNext2.addEventListener('click', () => {
+        SoundSystem.playSelect();
+        document.getElementById('wt-step-2').classList.remove('active');
+        document.getElementById('wt-step-3').classList.add('active');
+        document.getElementById('wt-dot-2').classList.remove('active');
+        document.getElementById('wt-dot-3').classList.add('active');
+      });
+    }
+
+    const btnWtStartGame = document.getElementById('btn-wt-start-game');
+    if (btnWtStartGame) {
+      btnWtStartGame.addEventListener('click', () => {
+        SoundSystem.playSelect();
+        document.getElementById('train-walkthrough-overlay').classList.remove('active');
+        localStorage.setItem('winding_arrows_train_walkthrough_completed', 'true');
+        ArrowGame.active = true;
+      });
+    }
 
     // Settings
     document.getElementById('btn-settings').addEventListener('click', () => {
@@ -156,7 +309,7 @@ const App = {
     // Grid toggle button
     document.getElementById('btn-grid-toggle').addEventListener('click', () => {
       SoundSystem.playSelect();
-      ArrowGame.showGrid = !ArrowGame.showGrid;
+      ArrowGame.toggleGrid();
     });
 
     // Pause button float
@@ -179,7 +332,10 @@ const App = {
     });
 
     document.getElementById('btn-exit-game').addEventListener('click', () => {
-      this.showScreen('menu-screen');
+      SoundSystem.playSelect();
+      document.getElementById('pause-overlay').classList.remove('active');
+      this.showScreen('level-select-screen');
+      this.renderLevelSelect();
     });
 
     // Victory overlays
@@ -393,18 +549,26 @@ const App = {
       grid.appendChild(card);
     }
 
-    // Auto-scroll to the current active level
-    setTimeout(() => {
-      const activeCard = grid.querySelector('.level-card.active-unlocked');
-      if (activeCard) {
-        activeCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      } else {
-        // Fallback to bottom if no active level found
-        const scrollArea = document.querySelector('.levels-scroll-area');
-        if (scrollArea) scrollArea.scrollTop = scrollArea.scrollHeight;
-      }
-    }, 50);
+    // Update Floating Action Button text with current unlocked level number
+    const currentId = this.getCurrentUnlockedLevelId();
+    const fabNum = document.getElementById('fab-level-num');
+    if (fabNum) {
+      fabNum.textContent = currentId;
+    }
+
+    // Auto-scroll to center on the current active level card
+    requestAnimationFrame(() => {
+      this.scrollToCurrentLevel(false);
+      setTimeout(() => this.scrollToCurrentLevel(true), 80);
+    });
   }
+};
+
+window.resetTrainTutorial = function() {
+  localStorage.removeItem('winding_arrows_realtime_tutorial_done');
+  localStorage.removeItem('winding_arrows_ingame_tutorial_done');
+  localStorage.removeItem('winding_arrows_train_walkthrough_completed');
+  alert('✨ Train Walkthrough reset for Level 4!');
 };
 
 window.addEventListener('DOMContentLoaded', () => App.init());

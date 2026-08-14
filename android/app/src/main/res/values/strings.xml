@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">WindingArrows</string>
+    <string name="title_activity_main">WindingArrows</string>
+    <string name="package_name">com.windingarrows.puzzleescape</string>
+    <string name="custom_url_scheme">com.windingarrows.puzzleescape</string>
+</resources>

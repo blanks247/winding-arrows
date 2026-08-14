@@ -2,7 +2,7 @@
 
 const GRID_COORDS = {
   offsetX: 30,
-  offsetY: 100,
+  offsetY: 80,
   pitch: 25
 };
 
@@ -748,7 +748,13 @@ function generateProceduralLevel(levelId, options = {}) {
   return {
     id: levelId,
     name: `Sector Map ${levelId}`,
-    trainConfig: (levelId === 16) ? [
+    isTrain,
+    trainConfig: isTrain ? ((Math.floor(levelId / 4) % 2 === 1) ? [
+      { color: "#1e1b18", isEngine: true, length: 4, gap: 2 },
+      { color: "#ab364f", isEngine: false, length: 9, gap: 2 },
+      { color: "#3a69a4", isEngine: false, length: 9, gap: 2 },
+      { color: "#5e9554", isEngine: false, length: 9, gap: 2 }
+    ] : [
       { color: "#1e1b18", isEngine: true, length: 3, gap: 1 },
       { color: "#ab364f", isEngine: false, length: 3, gap: 1 },
       { color: "#3a69a4", isEngine: false, length: 3, gap: 1 },
@@ -763,14 +769,8 @@ function generateProceduralLevel(levelId, options = {}) {
       { color: "#ab364f", isEngine: false, length: 3, gap: 1 },
       { color: "#3a69a4", isEngine: false, length: 3, gap: 1 },
       { color: "#5e9554", isEngine: false, length: 3, gap: 1 }
-    ] : (isTrain ? [
-      { color: "#1e1b18", isEngine: true, length: 4, gap: 2 },
-      { color: "#ab364f", isEngine: false, length: 9, gap: 2 },
-      { color: "#3a69a4", isEngine: false, length: 9, gap: 2 },
-      { color: "#5e9554", isEngine: false, length: 9, gap: 2 }
-    ] : undefined),
+    ]) : undefined,
     gates,
-    carts,
     reflectors,
     splitters,
     crumblingTiles,
@@ -1053,29 +1053,18 @@ function generateMazeProceduralLevel(levelId) {
 
 
 
-// Master Level Retriever
+// Master Level Retriever - Exact 25% Normal, 50% Maze, 25% Train
 function getLevel(levelId) {
-  // Use the basic script for levels 1 to 9
-  if (levelId >= 1 && levelId <= 9) {
-    return generateProceduralLevel(levelId);
-  }
-  
-  // Use the train script for level 10 and 16
-  if (levelId === 10 || levelId === 16) {
-    return generateProceduralLevel(levelId, { isTrain: true });
-  }
+  const slot = (levelId - 1) % 4;
 
-  // From level 11 to 500, we mix them using seeded random based on levelId
-  const rand = SeededRandom(levelId * 777);
-  
-  // 35% chance for Maze/Splitter level, 65% basic (Train level is ONLY for Level 10 and 16)
-  const typeRoll = rand();
-  
-  if (typeRoll < 0.35) {
-    // Maze/Splitter Level (new script)
+  if (slot === 0) {
+    // Normal Standard Winding Level (25% total = 125 levels)
+    return generateProceduralLevel(levelId, { isTrain: false });
+  } else if (slot === 1 || slot === 2) {
+    // Maze Level (50% total = 250 levels)
     return generateMazeProceduralLevel(levelId);
   } else {
-    // Basic Level
-    return generateProceduralLevel(levelId, { isTrain: false });
+    // Train Level (25% total = 125 levels)
+    return generateProceduralLevel(levelId, { isTrain: true });
   }
 }

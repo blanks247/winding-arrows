@@ -61,60 +61,91 @@ const SoundSystem = {
     }
   },
 
-  playTrainMusic() {
-    if (!this.musicEnabled) return;
-    this.init();
-    if (!this.ctx || this.trainInterval) return;
-
-    if (this.ctx.state === 'suspended') {
-      this.ctx.resume();
-    }
-
-    this.trainGain = this.ctx.createGain();
-    this.trainGain.connect(this.ctx.destination);
-    this.trainGain.gain.value = 0;
-
-    let tick = 0;
-    this.trainInterval = setInterval(() => {
-      if (this.ctx.state === 'suspended') this.ctx.resume();
-      
+  playFluteNote(freq, duration = 0.25, gainVal = 0.08) {
+    try {
+      if (!this.musicEnabled) return;
+      this.init();
+      if (!this.ctx) return;
       const t = this.ctx.currentTime;
-      const osc = this.ctx.createOscillator();
+
+      // Main Flute Tone (Sine wave)
+      const osc1 = this.ctx.createOscillator();
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(freq, t);
+
+      // Sub-harmonic Flute Warmth (Triangle wave)
+      const osc2 = this.ctx.createOscillator();
+      osc2.type = 'triangle';
+      osc2.frequency.setValueAtTime(freq * 2, t);
+
+      // Vibrato LFO for realistic breathy trill
+      const vibrato = this.ctx.createOscillator();
+      vibrato.frequency.value = 5.5; // 5.5 Hz vibrato speed
+      const vibratoGain = this.ctx.createGain();
+      vibratoGain.gain.value = 6.0; // Pitch modulation depth
+      vibrato.connect(osc1.frequency);
+      vibrato.connect(osc2.frequency);
+
+      // Lowpass Filter for soft wooden flute timbre
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(1800, t);
+
       const gain = this.ctx.createGain();
-      osc.connect(gain);
-      gain.connect(this.trainGain);
+      const subGain = this.ctx.createGain();
+      subGain.gain.value = 0.12;
 
-      // Chug-chug rhythm pattern
-      if (tick % 4 === 0) {
-        osc.frequency.setValueAtTime(100, t);
-        gain.gain.setValueAtTime(0.05, t);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
-      } else {
-        osc.frequency.setValueAtTime(120, t);
-        gain.gain.setValueAtTime(0.02, t);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+      osc1.connect(gain);
+      osc2.connect(subGain);
+      subGain.connect(gain);
+
+      gain.connect(filter);
+      filter.connect(this.ctx.destination);
+
+      // Organic Flute Attack & Decay Envelope
+      gain.gain.setValueAtTime(0.001, t);
+      gain.gain.linearRampToValueAtTime(gainVal, t + 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+
+      vibrato.start(t);
+      osc1.start(t);
+      osc2.start(t);
+
+      vibrato.stop(t + duration);
+      osc1.stop(t + duration);
+      osc2.stop(t + duration);
+    } catch (e) {
+      console.warn("Flute note synthesis failed:", e);
+    }
+  },
+
+  playTrainMusic() {
+    try {
+      if (!this.musicEnabled) return;
+      if (!this.bgmAudio) {
+        this.bgmAudio = new Audio('src/assets/sounds/flute_bgm.mp3');
+        this.bgmAudio.loop = true;
       }
-
-      osc.start(t);
-      osc.stop(t + 0.2);
-      
-      tick++;
-    }, 250); // 16th notes at approx 120bpm
-
-    this.trainGain.gain.linearRampToValueAtTime(0.8, this.ctx.currentTime + 1.0);
+      this.bgmAudio.volume = 0.5;
+      const playPromise = this.bgmAudio.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(e => {
+          console.warn("Audio BGM autoplay blocked or failed:", e);
+        });
+      }
+    } catch (e) {
+      console.warn("playTrainMusic failed:", e);
+    }
   },
 
   stopTrainMusic() {
+    if (this.bgmAudio) {
+      this.bgmAudio.pause();
+      this.bgmAudio.currentTime = 0;
+    }
     if (this.trainInterval) {
       clearInterval(this.trainInterval);
       this.trainInterval = null;
-    }
-    if (this.trainGain) {
-      this.trainGain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.5);
-      setTimeout(() => {
-        if (this.trainGain) this.trainGain.disconnect();
-        this.trainGain = null;
-      }, 500);
     }
   },
 
@@ -159,10 +190,38 @@ const SoundSystem = {
         osc.start(now + idx * 0.08);
         osc.stop(now + idx * 0.08 + 0.5);
       });
-    } catch (e) {
-      console.warn("Audio playback win failed:", e);
-    }
-  }
+    } catch (e) {}
+  },
+
+  playTrainHorn() {
+    try {
+      if (!this.sfxEnabled) return;
+      const hornAudio = new Audio('src/assets/sounds/train_horn.mp3');
+      hornAudio.volume = 0.85;
+      const playPromise = hornAudio.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {
+          // Fallback synthesizer if file audio is blocked
+          if (!this.ctx) this.init();
+          if (this.ctx) {
+            const now = this.ctx.currentTime;
+            [311.13, 370.00, 466.16].forEach(freq => {
+              const osc = this.ctx.createOscillator();
+              const gain = this.ctx.createGain();
+              osc.type = 'sawtooth';
+              osc.frequency.setValueAtTime(freq, now);
+              gain.gain.setValueAtTime(0.08, now);
+              gain.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+              osc.connect(gain);
+              gain.connect(this.ctx.destination);
+              osc.start(now);
+              osc.stop(now + 0.55);
+            });
+          }
+        });
+      }
+    } catch (e) {}
+  },
 };
 
 const ArrowGame = {
@@ -234,25 +293,61 @@ const ArrowGame = {
   },
 
   resizeCanvas() {
+    if (!this.canvas) return;
     const wrapper = this.canvas.parentElement;
     if (!wrapper) return;
+
     const wrapperW = wrapper.clientWidth;
     const wrapperH = wrapper.clientHeight;
-    // Logical canvas dimensions (game world always runs at these coords)
+
     const logicalW = 360;
     const logicalH = 460;
-    const scale = Math.min(wrapperW / logicalW, wrapperH / logicalH, 1);
-    // Apply CSS scaling to fit the wrapper without distortion
-    this.canvas.style.width  = Math.floor(logicalW * scale) + 'px';
-    this.canvas.style.height = Math.floor(logicalH * scale) + 'px';
+
+    // Calculate dynamic aspect-fit scaling factor
+    const scale = Math.min(wrapperW / logicalW, wrapperH / logicalH);
+
+    const displayW = Math.max(200, Math.floor(logicalW * scale));
+    const displayH = Math.max(255, Math.floor(logicalH * scale));
+
+    // High-DPI (Retina) Pixel Buffer
+    const dpr = window.devicePixelRatio || 1;
+    this.canvas.width = Math.round(displayW * dpr);
+    this.canvas.height = Math.round(displayH * dpr);
+
+    this.canvas.style.width = displayW + 'px';
+    this.canvas.style.height = displayH + 'px';
+
+    if (this.ctx) {
+      this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+      this.ctx.scale(scale * dpr, scale * dpr);
+    }
   },
 
   loadSaveData() {
     this.tokens = parseInt(localStorage.getItem('winding_tokens')) || 0;
+    this.showGrid = localStorage.getItem('winding_arrows_show_grid') !== 'false';
   },
 
   saveData() {
     localStorage.setItem('winding_tokens', this.tokens);
+    localStorage.setItem('winding_arrows_show_grid', this.showGrid);
+  },
+
+  toggleGrid() {
+    this.showGrid = !this.showGrid;
+    localStorage.setItem('winding_arrows_show_grid', this.showGrid);
+    this.updateGridButtonUI();
+  },
+
+  updateGridButtonUI() {
+    const btnGrid = document.getElementById('btn-grid-toggle');
+    if (btnGrid) {
+      if (this.showGrid) {
+        btnGrid.style.opacity = '1.0';
+      } else {
+        btnGrid.style.opacity = '0.45';
+      }
+    }
   },
 
   startLevel(lvlData) {
@@ -264,6 +359,14 @@ const ArrowGame = {
     this.hoveredArrowId = null;
     this.hearts = 3;
     this.shakeIntensity = 0;
+
+    // Load saved grid setting preference
+    if (localStorage.getItem('winding_arrows_show_grid') !== null) {
+      this.showGrid = localStorage.getItem('winding_arrows_show_grid') !== 'false';
+    } else {
+      this.showGrid = true;
+    }
+    this.updateGridButtonUI();
 
     // Hide failure overlays
     document.getElementById('gameover-overlay').classList.remove('active');
@@ -302,38 +405,58 @@ const ArrowGame = {
     this.trainSpeedMultiplier = 1.0;
     this.smokeParticles = [];
 
+    // Pre-calculate perimeter cache & offscreen track canvas for high 60 FPS mobile performance
+    this.initPerimeterCache();
+    if (lvlData.trainConfig || lvlData.isTrain) {
+      this.initOffscreenTrack();
+    }
+
+    // Initialize 16 floating ambient backdrop particles
+    this.initAmbientBackdropParticles();
+
     // Setup speed control visibility
     this.trainSpeedMultiplier = 1.0;
-    const speedRow = document.getElementById('train-speed-control-row');
-    const hudSpeedText = document.getElementById('hud-train-speed');
-    if (speedRow) {
-      speedRow.style.display = (lvlData.id === 10 || lvlData.id === 20 || lvlData.id === 30 || lvlData.id === 16) ? 'flex' : 'none';
-    }
-    if (hudSpeedText) {
-      hudSpeedText.textContent = '1.0x';
-    }
-
-    // Level 10 Train Walkthrough Tutorial triggering
-    const tutorialOverlay = document.getElementById('tutorial-overlay');
-    if (lvlData.id === 10 && !localStorage.getItem('winding_arrows_train_tutorial_shown')) {
-      if (tutorialOverlay) {
-        tutorialOverlay.classList.add('active');
+    const trainBar = document.getElementById('train-control-bar');
+    const speedValText = document.getElementById('train-speed-val');
+    if (trainBar) {
+      if (lvlData.trainConfig || lvlData.isTrain) {
+        trainBar.classList.remove('hidden');
+      } else {
+        trainBar.classList.add('hidden');
       }
-      this.active = false; // Pause gameplay loops/input interaction
-    } else {
-      if (tutorialOverlay) {
-        tutorialOverlay.classList.remove('active');
-      }
+    }
+    if (speedValText) {
+      speedValText.textContent = '1.0x';
     }
 
-    if (lvlData.trainConfig) {
-      if (window.App && window.App.updateSettingsUI) {
-         window.App.updateSettingsUI();
-      } else if (SoundSystem.musicEnabled) {
-         SoundSystem.playTrainMusic();
-      }
+    // Real-Time Dynamic Train Tutorial Initialization (ONLY triggers on Level 4 - the first train level)
+    const wtOverlay = document.getElementById('train-walkthrough-overlay');
+    if (wtOverlay) wtOverlay.classList.remove('active');
+
+    this.waitingForTutorialArrowExit = null;
+    this.tutorialCompletionBannerTimer = 0;
+
+    if (lvlData.id === 4 && !localStorage.getItem('winding_arrows_realtime_tutorial_done')) {
+      this.realtimeTutorialActive = false; // Delay start by 1.0 second
+      this.realtimeTutorialPaused = false;
+      this.realtimeTargetArrow = null;
+      this.realtimeTutorialStep = 1;
+
+      // Allow 1.0 second of natural train movement before starting dynamic pause detection
+      setTimeout(() => {
+        if (this.level && (this.level.trainConfig || this.level.isTrain)) {
+          this.realtimeTutorialActive = true;
+        }
+      }, 1000);
     } else {
-      SoundSystem.stopTrainMusic();
+      this.realtimeTutorialActive = false;
+      this.realtimeTutorialPaused = false;
+      this.realtimeTargetArrow = null;
+      this.realtimeTutorialStep = 0;
+    }
+
+    if (SoundSystem.musicEnabled) {
+      SoundSystem.playTrainMusic();
     }
 
     this.updateHUD();
@@ -354,8 +477,73 @@ const ArrowGame = {
       const rect = this.canvas.getBoundingClientRect();
       const clientX = e.touches ? e.touches[0].clientX : e.clientX;
       const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-      const tx = ((clientX - rect.left) / rect.width) * this.canvas.width;
-      const ty = ((clientY - rect.top) / rect.height) * this.canvas.height;
+      const tx = ((clientX - rect.left) / rect.width) * 360;
+      const ty = ((clientY - rect.top) / rect.height) * 460;
+
+      this.spawnTouchRipple(tx, ty);
+
+      // Handle Real-Time Dynamic Train Tutorial Taps
+      if (this.realtimeTutorialPaused) {
+        if (this.realtimeTutorialStep === 1 && this.realtimeTargetArrow) {
+          const tapped = this.getArrowAtPosition(tx, ty);
+          if (tapped && tapped.id === this.realtimeTargetArrow.id) {
+            // Unpause to allow arrow escape animation to play through exit gate into carriage
+            this.realtimeTutorialPaused = false;
+            this.waitingForTutorialArrowExit = tapped;
+            SoundSystem.playWin();
+            this.attemptEscape(tapped);
+          } else {
+            this.shakeIntensity = 2.0;
+          }
+          return;
+        }
+
+        if (this.realtimeTutorialStep === 2) {
+          // Check Speed Pill (tx: 116..186) or Horn Pill (tx: 188..250)
+          if (ty >= 4 && ty <= 35 && tx >= 116 && tx <= 250) {
+            if (tx <= 186) {
+              SoundSystem.playSelect();
+              const speeds = [1.0, 2.0, 3.0];
+              const curSpd = this.trainSpeedMultiplier || 1.0;
+              let nextIdx = (speeds.indexOf(curSpd) + 1) % speeds.length;
+              if (nextIdx === -1) nextIdx = 0;
+              this.trainSpeedMultiplier = speeds[nextIdx];
+            } else {
+              SoundSystem.playTrainHorn();
+              this.shakeIntensity = 3.0;
+            }
+            // Complete tutorial & trigger 2.2s completion banner!
+            this.realtimeTutorialPaused = false;
+            this.realtimeTutorialActive = false;
+            this.realtimeTutorialStep = 3;
+            this.tutorialCompletionBannerTimer = 130; // ~2.2 seconds
+            localStorage.setItem('winding_arrows_realtime_tutorial_done', 'true');
+          } else {
+            this.shakeIntensity = 1.5;
+          }
+          return;
+        }
+      }
+
+      // Check On-Canvas Compact Speed & Horn Pill Taps (ty: 4..32)
+      if (this.level && (this.level.trainConfig || this.level.isTrain) && ty >= 4 && ty <= 32) {
+        // Speed Toggle Pill: tx 116..186
+        if (tx >= 116 && tx <= 186) {
+          SoundSystem.playSelect();
+          const speeds = [1.0, 2.0, 3.0];
+          const curSpd = this.trainSpeedMultiplier || 1.0;
+          let nextIdx = (speeds.indexOf(curSpd) + 1) % speeds.length;
+          if (nextIdx === -1) nextIdx = 0;
+          this.trainSpeedMultiplier = speeds[nextIdx];
+          return;
+        }
+        // Horn Pill: tx 188..250
+        if (tx >= 188 && tx <= 250) {
+          SoundSystem.playTrainHorn();
+          this.shakeIntensity = 3.0;
+          return;
+        }
+      }
 
       // Find nearest arrow body
       const tapped = this.getArrowAtPosition(tx, ty);
@@ -369,8 +557,8 @@ const ArrowGame = {
       const rect = this.canvas.getBoundingClientRect();
       const clientX = e.touches ? e.touches[0].clientX : e.clientX;
       const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-      const tx = ((clientX - rect.left) / rect.width) * this.canvas.width;
-      const ty = ((clientY - rect.top) / rect.height) * this.canvas.height;
+      const tx = ((clientX - rect.left) / rect.width) * 360;
+      const ty = ((clientY - rect.top) / rect.height) * 460;
 
       const hovered = this.getArrowAtPosition(tx, ty);
       this.hoveredArrowId = hovered ? hovered.id : null;
@@ -937,14 +1125,6 @@ const ArrowGame = {
       const hCount = Math.max(0, this.hearts !== undefined ? this.hearts : 3);
       document.getElementById('hud-hearts').innerHTML = '❤️️'.repeat(hCount);
     }
-
-    // Calculate progress percentage
-    if (this.arrows && this.arrows.length > 0 && document.getElementById('game-progress-fill')) {
-      const total = this.arrows.length;
-      const escaped = this.arrows.filter(a => a.status === 'ESCAPED').length;
-      const pct = (escaped / total) * 100;
-      document.getElementById('game-progress-fill').style.width = pct + '%';
-    }
   },
 
   spawnGlitch(x, y, color, count = 12) {
@@ -972,35 +1152,84 @@ const ArrowGame = {
       this.shakeIntensity = Math.max(0, this.shakeIntensity - 0.55);
     }
 
-    // Update continuous perimeter cart glide positions
-    if (this.carts) {
-      if (this.level && (this.level.id === 10 || this.level.id === 20 || this.level.id === 30 || this.level.id === 16)) {
+    // Update continuous perimeter train glide position
+    if (this.level && (this.level.trainConfig || this.level.isTrain)) {
+      if (!this.realtimeTutorialPaused) {
         this.trainPos = (this.trainPos + 0.035 * (this.trainSpeedMultiplier || 1.0)) % 48;
+      }
 
-        // Spawn smoke particles at the locomotive chimney (approx 1.5 slots behind the head trainPos)
-        if (this.smokeParticles && Math.random() < 0.35) {
-          const chimneyP = (this.trainPos - 1.5 + 48) % 48;
-          const chimneyCoords = this.getPerimeterCoords(chimneyP);
+      // Real-Time Dynamic Tutorial Check: Auto-pause the frame a carriage aligns near exit gate
+      if (this.realtimeTutorialActive && !this.realtimeTutorialPaused) {
+        // Filter to ONLY unblocked arrows that can safely escape without collision or heart loss!
+        const idleArrows = this.arrows.filter(a => a.status === 'IDLE' && !this.checkPolylineCollision(a, this.arrows) && !this.checkGateCollision(a));
+        for (const arrow of idleArrows) {
+          if (!arrow.path || arrow.path.length < 2) continue;
+          const exitPt = arrow.path[arrow.path.length - 1];
+          const prevPt = arrow.path[arrow.path.length - 2];
+          
+          let dir = "U";
+          if (exitPt.x > prevPt.x) dir = "R";
+          else if (exitPt.x < prevPt.x) dir = "L";
+          else if (exitPt.y > prevPt.y) dir = "D";
 
-          const idx1 = Math.floor(chimneyP) % 48;
-          const idx2 = (idx1 + 1) % 48;
-          const p1 = this.getIntegerPerimeterCoords(idx1);
-          const p2 = this.getIntegerPerimeterCoords(idx2);
-          const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+          const col = Math.round((exitPt.x - GRID_COORDS.offsetX) / GRID_COORDS.pitch);
+          const row = Math.round((exitPt.y - GRID_COORDS.offsetY) / GRID_COORDS.pitch);
+          const exitPos = this.getPerimeterPosFromExit(dir, col, row);
 
-          this.smokeParticles.push({
-            x: chimneyCoords.x,
-            y: chimneyCoords.y,
-            vx: -Math.cos(angle) * 0.45 + (Math.random() - 0.5) * 0.3,
-            vy: -Math.sin(angle) * 0.45 - 0.55 - Math.random() * 0.4,
-            size: 2.5 + Math.random() * 2.5,
-            alpha: 0.75,
-            decay: 0.012 + Math.random() * 0.012
-          });
+          // Check if a carriage matching arrow.color is aligned near exitPos right now
+          if (this.level.trainConfig) {
+            let currentOffset = 0;
+            for (let i = 0; i < this.level.trainConfig.length - 1; i++) {
+              const cart = this.level.trainConfig[i];
+              const startOffset = currentOffset - cart.length;
+              const endOffset = currentOffset;
+              currentOffset = startOffset - cart.gap;
+
+              const cartMidPos = (this.trainPos + (startOffset + endOffset) / 2 + 480) % 48;
+              const dist = Math.abs(cartMidPos - exitPos);
+              const minDist = Math.min(dist, 48 - dist);
+
+              if (cart.color === arrow.color && minDist <= 0.7) {
+                // REALISTIC DYNAMIC PAUSE!
+                this.realtimeTutorialPaused = true;
+                this.realtimeTargetArrow = arrow;
+                SoundSystem.playSelect();
+                break;
+              }
+            }
+          }
+          if (this.realtimeTutorialPaused) break;
         }
-      } else {
-        this.carts.forEach(c => {
-          c.pos = (c.pos + 0.035) % 48;
+      }
+
+      // Check if waiting for Step 1 tutorial arrow to finish exiting into carriage
+      if (this.waitingForTutorialArrowExit && this.waitingForTutorialArrowExit.status === 'ESCAPED') {
+        this.waitingForTutorialArrowExit = null;
+        // Arrow has fully passed through train and exited! Move to Step 2!
+        this.realtimeTutorialStep = 2;
+        this.realtimeTutorialPaused = true;
+        SoundSystem.playSelect();
+      }
+
+      // Spawn smoke particles at the locomotive chimney (approx 1.5 slots behind the head trainPos)
+      if (this.smokeParticles && Math.random() < 0.35) {
+        const chimneyP = (this.trainPos - 1.5 + 48) % 48;
+        const chimneyCoords = this.getPerimeterCoords(chimneyP);
+
+        const idx1 = Math.floor(chimneyP) % 48;
+        const idx2 = (idx1 + 1) % 48;
+        const p1 = this.getIntegerPerimeterCoords(idx1);
+        const p2 = this.getIntegerPerimeterCoords(idx2);
+        const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+
+        this.smokeParticles.push({
+          x: chimneyCoords.x,
+          y: chimneyCoords.y,
+          vx: -Math.cos(angle) * 0.45 + (Math.random() - 0.5) * 0.3,
+          vy: -Math.sin(angle) * 0.45 - 0.55 - Math.random() * 0.4,
+          size: 2.5 + Math.random() * 2.5,
+          alpha: 0.75,
+          decay: 0.012 + Math.random() * 0.012
         });
       }
     }
@@ -1062,7 +1291,7 @@ const ArrowGame = {
         }
 
         // Perimeter Carts matching check when reaching grid boundary
-        if (a.progress >= totalPathLen && (this.carts.length > 0 || (this.level && (this.level.id === 10 || this.level.id === 20 || this.level.id === 30 || this.level.id === 16))) && !a.checkedCart) {
+        if (a.progress >= totalPathLen && (this.level && (this.level.trainConfig || this.level.isTrain)) && !a.checkedCart) {
           a.checkedCart = true;
           const lastPt = a.smoothPath[a.smoothPath.length - 1];
           const prevPt = a.smoothPath[a.smoothPath.length - 2] || a.smoothPath[0];
@@ -1076,7 +1305,7 @@ const ArrowGame = {
 
           const exitPos = this.getPerimeterPosFromExit(dir, finalCol, finalRow);
           let match = false;
-          if (this.level && (this.level.id === 10 || this.level.id === 20 || this.level.id === 30 || this.level.id === 16)) {
+          if (this.level && (this.level.trainConfig || this.level.isTrain)) {
             const trainPos = this.trainPos;
             if (this.level.trainConfig) {
               let currentOffset = 0;
@@ -1222,7 +1451,10 @@ const ArrowGame = {
     this.tokens += reward;
     this.saveData();
 
-    document.getElementById('victory-tokens-earned').textContent = reward;
+    const tokenEl = document.getElementById('victory-tokens-earned');
+    if (tokenEl) {
+      tokenEl.textContent = reward;
+    }
 
     let cleared = JSON.parse(localStorage.getItem('winding_cleared_levels')) || [];
     if (!cleared.includes(this.level.id)) {
@@ -1231,12 +1463,53 @@ const ArrowGame = {
     }
 
     SoundSystem.playWin();
+    this.triggerVictoryConfetti();
     document.getElementById('victory-overlay').classList.add('active');
   },
 
+  triggerVictoryConfetti() {
+    this.confettiParticles = [];
+    const colors = ['#f43f5e', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
+    for (let i = 0; i < 42; i++) {
+      this.confettiParticles.push({
+        x: 180 + (Math.random() - 0.5) * 30,
+        y: 210 + (Math.random() - 0.5) * 30,
+        vx: (Math.random() - 0.5) * 9,
+        vy: -5 - Math.random() * 7,
+        size: 5 + Math.random() * 6,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        rotation: Math.random() * Math.PI * 2,
+        rotSpeed: (Math.random() - 0.5) * 0.22
+      });
+    }
+  },
+
+  drawVictoryConfetti() {
+    if (!this.confettiParticles) return;
+    this.ctx.save();
+    this.confettiParticles.forEach(p => {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.22;
+      p.rotation += p.rotSpeed;
+
+      this.ctx.save();
+      this.ctx.translate(p.x, p.y);
+      this.ctx.rotate(p.rotation);
+      this.ctx.fillStyle = p.color;
+      this.ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.7);
+      this.ctx.restore();
+    });
+    this.ctx.restore();
+  },
+
   render() {
-    // Warm clean cream background matching the screenshot
-    this.ctx.fillStyle = '#fbfaf5';
+    // Warm soft spotlight background matching the ambient level backdrop
+    const canvasGrad = this.ctx.createRadialGradient(180, 230, 20, 180, 230, 250);
+    canvasGrad.addColorStop(0, '#ffffff');
+    canvasGrad.addColorStop(0.7, '#fdfbf7');
+    canvasGrad.addColorStop(1, '#f6f0e2');
+    this.ctx.fillStyle = canvasGrad;
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
     this.ctx.save();
@@ -1246,7 +1519,8 @@ const ArrowGame = {
       this.ctx.translate(dx, dy);
     }
 
-    // Plain background as requested by user.
+    // Render interactive touch ripples
+    this.drawTouchRipples();
 
     // Draw optional grid dots overlay
     if (this.showGrid) {
@@ -1260,7 +1534,7 @@ const ArrowGame = {
           const y = oy + row * pitch;
           this.ctx.beginPath();
           this.ctx.arc(x, y, 2.2, 0, Math.PI * 2);
-          this.ctx.fillStyle = 'rgba(104, 92, 76, 0.25)';
+          this.ctx.fillStyle = 'rgba(120, 105, 80, 0.48)';
           this.ctx.fill();
         }
       }
@@ -1417,28 +1691,15 @@ const ArrowGame = {
       });
     }
 
-    // Draw continuous perimeter guide track (if level has carts)
-    if ((this.carts && this.carts.length > 0) || (this.level && (this.level.id === 10 || this.level.id === 20 || this.level.id === 30 || this.level.id === 16))) {
-      this.ctx.save();
-      this.ctx.strokeStyle = '#e5dfcf';
-      this.ctx.lineWidth = 20;
-      this.ctx.lineCap = 'round';
-      this.ctx.lineJoin = 'round';
-      this.ctx.beginPath();
-      this.ctx.roundRect(
-        GRID_COORDS.offsetX - 20,
-        GRID_COORDS.offsetY - 20,
-        12 * GRID_COORDS.pitch + 40,
-        12 * GRID_COORDS.pitch + 40,
-        18
-      );
-      this.ctx.stroke();
+    // Draw continuous perimeter railway track (if level has train)
+    if (this.level && (this.level.trainConfig || this.level.isTrain)) {
+      if (!this.offscreenTrackCanvas) {
+        this.initOffscreenTrack();
+      }
+      this.ctx.drawImage(this.offscreenTrackCanvas, 0, 0);
 
-      // Thin inner guideline
-      this.ctx.strokeStyle = '#fbfaf5';
-      this.ctx.lineWidth = 2;
-      this.ctx.stroke();
-      this.ctx.restore();
+      // Corner Railway Signal Posts with Pulsing LED Lamps
+      this.drawRailwaySignals();
     }
 
     // Draw Teleport Portals (glowing entrance/exit rings)
@@ -1477,140 +1738,38 @@ const ArrowGame = {
       });
     }
 
-    // Draw Perimeter Carts
-    if (this.carts) {
-      if (this.level && (this.level.id === 10 || this.level.id === 20 || this.level.id === 30 || this.level.id === 16)) {
-        const trainPos = this.trainPos;
+    // Draw Train Carriages & Engine
+    if (this.level && (this.level.trainConfig || this.level.isTrain)) {
+      const trainPos = this.trainPos;
 
-        if (this.level.trainConfig) {
-          let currentOffset = 0;
-          for (let i = 0; i < this.level.trainConfig.length - 1; i++) {
-            const cart = this.level.trainConfig[i];
-            const startOffset = currentOffset - cart.length;
-            const linkStart = startOffset - cart.gap;
-            const linkEnd = startOffset;
-            if (cart.gap > 0) {
-              this.drawLinkage(trainPos + linkStart, trainPos + linkEnd);
-            }
-            currentOffset = linkStart;
+      if (this.level.trainConfig) {
+        let currentOffset = 0;
+        for (let i = 0; i < this.level.trainConfig.length - 1; i++) {
+          const cart = this.level.trainConfig[i];
+          const startOffset = currentOffset - cart.length;
+          const linkStart = startOffset - cart.gap;
+          const linkEnd = startOffset;
+          if (cart.gap > 0) {
+            this.drawLinkage(trainPos + linkStart, trainPos + linkEnd);
           }
-          currentOffset = 0;
-          for (let i = 0; i < this.level.trainConfig.length; i++) {
-            const cart = this.level.trainConfig[i];
-            const startOffset = currentOffset - cart.length;
-            this.drawTrainSegment(cart.color, trainPos + startOffset, trainPos + currentOffset, cart.isEngine);
-            currentOffset = startOffset - cart.gap;
-          }
-        } else {
-          // Fallback legacy train
-          this.drawLinkage(trainPos - 6, trainPos - 4);
-          this.drawLinkage(trainPos - 17, trainPos - 15);
-          this.drawLinkage(trainPos - 28, trainPos - 26);
-          this.drawTrainSegment("#1e1b18", trainPos - 4, trainPos, true);
-          this.drawTrainSegment("#ab364f", trainPos - 15, trainPos - 6, false);
-          this.drawTrainSegment("#3a69a4", trainPos - 26, trainPos - 17, false);
-          this.drawTrainSegment("#5e9554", trainPos - 37, trainPos - 28, false);
+          currentOffset = linkStart;
+        }
+        currentOffset = 0;
+        for (let i = 0; i < this.level.trainConfig.length; i++) {
+          const cart = this.level.trainConfig[i];
+          const startOffset = currentOffset - cart.length;
+          this.drawTrainSegment(cart.color, trainPos + startOffset, trainPos + currentOffset, cart.isEngine);
+          currentOffset = startOffset - cart.gap;
         }
       } else {
-        this.carts.forEach(c => {
-          for (let car = 0; car < 3; car++) {
-            const carPos = (c.pos - car * 0.72 + 48) % 48;
-            const coords = this.getPerimeterCoords(carPos);
-
-            const coords1 = this.getPerimeterCoords((carPos - 0.15 + 48) % 48);
-            const coords2 = this.getPerimeterCoords((carPos + 0.15 + 48) % 48);
-            const angle = Math.atan2(coords2.y - coords1.y, coords2.x - coords1.x);
-
-            this.ctx.save();
-            this.ctx.translate(coords.x, coords.y);
-            this.ctx.rotate(angle);
-
-            // Draw coupled carriage connector line (if not the lead engine)
-            if (car > 0) {
-              this.ctx.strokeStyle = '#685c4c';
-              this.ctx.lineWidth = 2.0;
-              this.ctx.beginPath();
-              this.ctx.moveTo(-16, 0);
-              this.ctx.lineTo(-10, 0);
-              this.ctx.stroke();
-            }
-
-            // Draw cart shadow
-            this.ctx.shadowColor = 'rgba(104, 92, 76, 0.18)';
-            this.ctx.shadowBlur = 4;
-            this.ctx.shadowOffsetY = 1.5;
-
-            // Draw wheels
-            const wheelRadius = 3.0;
-            const wheelOffsets = [
-              { x: -7, y: -5 },
-              { x: 7, y: -5 },
-              { x: -7, y: 5 },
-              { x: 7, y: 5 }
-            ];
-
-            wheelOffsets.forEach(wo => {
-              this.ctx.save();
-              this.ctx.translate(wo.x, wo.y);
-              const spin = c.pos * Math.PI * 2.5;
-              this.ctx.rotate(spin);
-
-              this.ctx.fillStyle = '#4a3f35';
-              this.ctx.beginPath();
-              this.ctx.arc(0, 0, wheelRadius, 0, Math.PI * 2);
-              this.ctx.fill();
-
-              this.ctx.strokeStyle = '#e7e3d4';
-              this.ctx.lineWidth = 1.0;
-              this.ctx.beginPath();
-              this.ctx.moveTo(-wheelRadius + 0.5, 0);
-              this.ctx.lineTo(wheelRadius - 0.5, 0);
-              this.ctx.stroke();
-
-              this.ctx.restore();
-            });
-
-            // Draw cart chassis card
-            this.ctx.fillStyle = '#e7e3d4';
-            this.ctx.strokeStyle = '#685c4c';
-            this.ctx.lineWidth = 1.2;
-            this.ctx.beginPath();
-            if (car === 0) {
-              // Engine features rounded cockpit front
-              this.ctx.roundRect(-10, -6, 20, 12, [3, 6, 6, 3]);
-            } else {
-              this.ctx.roundRect(-10, -6, 20, 12, 3);
-            }
-            this.ctx.fill();
-            this.ctx.stroke();
-
-            // Draw color cargo box
-            this.ctx.fillStyle = c.color;
-            this.ctx.beginPath();
-            this.ctx.roundRect(-7, -3, 14, 6, 1.5);
-            this.ctx.fill();
-
-            // Draw Color-blind label badge inside cargo
-            if (this.colorBlindMode) {
-              let letter = "C";
-              if (c.color === "#ab364f") letter = "R";
-              if (c.color === "#3a69a4") letter = "B";
-              if (c.color === "#e59a3f") letter = "O";
-              if (c.color === "#5e9554") letter = "G";
-              if (c.color === "#22d3ee") letter = "C";
-
-              // Rotate text to be drawn upright
-              this.ctx.rotate(-angle);
-              this.ctx.fillStyle = "#ffffff";
-              this.ctx.font = "bold 7px sans-serif";
-              this.ctx.textAlign = "center";
-              this.ctx.textBaseline = "middle";
-              this.ctx.fillText(letter, 0, 0);
-            }
-
-            this.ctx.restore();
-          }
-        });
+        // Default Train Config
+        this.drawLinkage(trainPos - 6, trainPos - 4);
+        this.drawLinkage(trainPos - 17, trainPos - 15);
+        this.drawLinkage(trainPos - 28, trainPos - 26);
+        this.drawTrainSegment("#1e1b18", trainPos - 4, trainPos, true);
+        this.drawTrainSegment("#ab364f", trainPos - 15, trainPos - 6, false);
+        this.drawTrainSegment("#3a69a4", trainPos - 26, trainPos - 17, false);
+        this.drawTrainSegment("#5e9554", trainPos - 37, trainPos - 28, false);
       }
     }
 
@@ -1778,7 +1937,339 @@ const ArrowGame = {
       this.ctx.restore();
     });
 
+    // 4. Draw Compact On-Canvas Train Speed & Horn Pills
+    this.drawCompactCanvasTrainPills();
+
+    // 5. Draw Live In-Game Canvas Train Walkthrough Tutorial (Spotlight & Pointer)
+    this.drawInGameTrainTutorial();
+
     this.ctx.restore(); // Restore camera screenshake translation
+  },
+
+  drawSingleArrow(a) {
+    if (!a || a.status === 'ESCAPED') return;
+    this.ctx.save();
+    this.ctx.strokeStyle = a.color;
+    this.ctx.lineWidth = 4 * a.strokeWidth;
+    this.ctx.lineCap = 'round';
+    this.ctx.lineJoin = 'round';
+    this.drawPolylinePath(a);
+    this.ctx.stroke();
+    this.drawArrowHead(a);
+    this.ctx.restore();
+  },
+
+  drawInGameTrainTutorial() {
+    // Render Step 3 Completion Toast Banner if active
+    if (this.tutorialCompletionBannerTimer > 0) {
+      this.tutorialCompletionBannerTimer--;
+      this.ctx.save();
+      
+      // Warm Cream Card with Green Emerald Accent
+      this.ctx.fillStyle = '#fdfbf7';
+      this.ctx.strokeStyle = '#22c55e';
+      this.ctx.lineWidth = 2.5;
+      this.ctx.shadowColor = 'rgba(34, 197, 94, 0.35)';
+      this.ctx.shadowBlur = 18;
+      this.ctx.shadowOffsetY = 4;
+      this.ctx.beginPath();
+      this.ctx.roundRect(20, 44, 320, 56, 18);
+      this.ctx.fill();
+      this.ctx.stroke();
+
+      this.ctx.shadowBlur = 0;
+      this.ctx.shadowOffsetY = 0;
+
+      // Pill Badge
+      this.ctx.fillStyle = '#dcfce7';
+      this.ctx.beginPath();
+      this.ctx.roundRect(140, 36, 80, 16, 8);
+      this.ctx.fill();
+      this.ctx.fillStyle = '#15803d';
+      this.ctx.font = '800 9px sans-serif';
+      this.ctx.textAlign = 'center';
+      this.ctx.textBaseline = 'middle';
+      this.ctx.fillText('READY! 🚀', 180, 44);
+
+      // Card Title & Subtitle
+      this.ctx.fillStyle = '#15803d';
+      this.ctx.font = '800 13px sans-serif';
+      this.ctx.fillText('🎉 ALL SET! START PLAYING NOW!', 180, 64);
+      this.ctx.fillStyle = '#685c4c';
+      this.ctx.font = 'bold 10.5px sans-serif';
+      this.ctx.fillText('Time your shots & escape all arrows into carriages!', 180, 84);
+      this.ctx.restore();
+    }
+
+    if (!this.realtimeTutorialPaused) return;
+
+    // Safety check: if Step 1 target arrow is no longer valid or idle, unpause immediately to prevent dark screen
+    if (this.realtimeTutorialStep === 1) {
+      if (!this.realtimeTargetArrow || this.realtimeTargetArrow.status !== 'IDLE' || !this.realtimeTargetArrow.path || this.realtimeTargetArrow.path.length === 0) {
+        this.realtimeTutorialPaused = false;
+        return;
+      }
+    }
+
+    this.ctx.save();
+    const t = Date.now() / 300;
+    const pulseScale = 1.0 + Math.sin(t) * 0.14;
+
+    // 1. High-End Darkened Overlay (Darkens background to make target area the Center of Attraction)
+    this.ctx.fillStyle = 'rgba(15, 12, 10, 0.72)';
+    this.ctx.fillRect(0, 0, 360, 460);
+
+    if (this.realtimeTutorialStep === 1 && this.realtimeTargetArrow) {
+      const targetArrow = this.realtimeTargetArrow;
+      if (targetArrow && targetArrow.path && targetArrow.path.length > 0) {
+        const startPt = targetArrow.path[0];
+
+        // 2. Soft-edge glowing cutout spotlight hole in the dark overlay
+        this.ctx.save();
+        this.ctx.globalCompositeOperation = 'destination-out';
+        this.ctx.beginPath();
+        this.ctx.arc(startPt.x, startPt.y, 44, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.restore();
+
+        // Re-render the target arrow brightly on top of the spotlight hole
+        this.drawSingleArrow(targetArrow);
+
+        // 3. Multi-layer Pulsing Target Scope Halo Rings
+        this.ctx.strokeStyle = '#facc15';
+        this.ctx.lineWidth = 3.5;
+        this.ctx.shadowColor = '#facc15';
+        this.ctx.shadowBlur = 18;
+        this.ctx.beginPath();
+        this.ctx.arc(startPt.x, startPt.y, 22 * pulseScale, 0, Math.PI * 2);
+        this.ctx.stroke();
+
+        this.ctx.strokeStyle = '#ab364f';
+        this.ctx.lineWidth = 2;
+        this.ctx.shadowColor = '#ab364f';
+        this.ctx.shadowBlur = 12;
+        this.ctx.beginPath();
+        this.ctx.arc(startPt.x, startPt.y, 30 * pulseScale, 0, Math.PI * 2);
+        this.ctx.stroke();
+
+        // 4. Large Bouncing Pointer Finger with Neon Glow
+        this.ctx.shadowColor = '#facc15';
+        this.ctx.shadowBlur = 16;
+        this.ctx.font = '32px sans-serif';
+        this.ctx.textAlign = 'center';
+        this.ctx.textBaseline = 'middle';
+        const bounceY = startPt.y - 42 + Math.sin(t * 2) * 6;
+        this.ctx.fillText('👆', startPt.x, bounceY);
+
+        // 5. Ultra-Neat Skeuomorphic Banner Card with Step 1 Badge
+        this.ctx.shadowBlur = 0;
+        this.ctx.fillStyle = '#fdfbf7';
+        this.ctx.strokeStyle = '#ab364f';
+        this.ctx.lineWidth = 2.5;
+        this.ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+        this.ctx.shadowBlur = 16;
+        this.ctx.shadowOffsetY = 4;
+        this.ctx.beginPath();
+        this.ctx.roundRect(20, 42, 320, 56, 18);
+        this.ctx.fill();
+        this.ctx.stroke();
+
+        this.ctx.shadowBlur = 0;
+        this.ctx.shadowOffsetY = 0;
+
+        // Step 1 Pill Badge
+        this.ctx.fillStyle = '#ffe4e6';
+        this.ctx.beginPath();
+        this.ctx.roundRect(135, 34, 90, 16, 8);
+        this.ctx.fill();
+        this.ctx.fillStyle = '#ab364f';
+        this.ctx.font = '800 9px sans-serif';
+        this.ctx.textAlign = 'center';
+        this.ctx.textBaseline = 'middle';
+        this.ctx.fillText('STEP 1 OF 2 🎯', 180, 42);
+
+        // Header & Subtitle
+        this.ctx.fillStyle = '#ab364f';
+        this.ctx.font = '800 13px sans-serif';
+        this.ctx.fillText('🎯 MATCH ARROW TO CARRIAGE', 180, 62);
+        this.ctx.fillStyle = '#685c4c';
+        this.ctx.font = 'bold 10.5px sans-serif';
+        this.ctx.fillText('Carriage is aligned at gate! Tap this arrow to escape!', 180, 82);
+      }
+    } else if (this.realtimeTutorialStep === 2) {
+      // Step 2: Soft-edge cutout spotlight hole around Speed & Horn Pills at top
+      this.ctx.save();
+      this.ctx.globalCompositeOperation = 'destination-out';
+      this.ctx.beginPath();
+      this.ctx.roundRect(114, 2, 138, 34, 17);
+      this.ctx.fill();
+      this.ctx.restore();
+
+      // Redraw speed & horn pills brightly
+      this.drawCompactCanvasTrainPills();
+
+      // Neon Cyan Spotlight Border
+      this.ctx.strokeStyle = '#22d3ee';
+      this.ctx.lineWidth = 3;
+      this.ctx.shadowColor = '#22d3ee';
+      this.ctx.shadowBlur = 18;
+      this.ctx.beginPath();
+      this.ctx.roundRect(114, 2, 138, 34, 17);
+      this.ctx.stroke();
+
+      // Bouncing Pointer Finger
+      this.ctx.shadowBlur = 0;
+      this.ctx.font = '30px sans-serif';
+      this.ctx.textAlign = 'center';
+      this.ctx.textBaseline = 'middle';
+      const bounceY = 54 + Math.sin(t * 2) * 5;
+      this.ctx.fillText('👆', 151, bounceY);
+
+      // Ultra-Neat Skeuomorphic Banner Card with Step 2 Badge
+      this.ctx.fillStyle = '#fdfbf7';
+      this.ctx.strokeStyle = '#0284c7';
+      this.ctx.lineWidth = 2.5;
+      this.ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+      this.ctx.shadowBlur = 16;
+      this.ctx.shadowOffsetY = 4;
+      this.ctx.beginPath();
+      this.ctx.roundRect(20, 86, 320, 56, 18);
+      this.ctx.fill();
+      this.ctx.stroke();
+
+      this.ctx.shadowBlur = 0;
+      this.ctx.shadowOffsetY = 0;
+
+      // Step 2 Pill Badge
+      this.ctx.fillStyle = '#e0f2fe';
+      this.ctx.beginPath();
+      this.ctx.roundRect(135, 78, 90, 16, 8);
+      this.ctx.fill();
+      this.ctx.fillStyle = '#0284c7';
+      this.ctx.font = '800 9px sans-serif';
+      this.ctx.textAlign = 'center';
+      this.ctx.textBaseline = 'middle';
+      this.ctx.fillText('STEP 2 OF 2 ⚡', 180, 86);
+
+      // Header & Subtitle
+      this.ctx.fillStyle = '#0284c7';
+      this.ctx.font = '800 13px sans-serif';
+      this.ctx.fillText('⚡ TRAIN SPEED & WHISTLE', 180, 106);
+      this.ctx.fillStyle = '#685c4c';
+      this.ctx.font = 'bold 10.5px sans-serif';
+      this.ctx.fillText('Tap Speed Pill to cycle speeds (1.0x ➔ 1.5x) or blow horn!', 180, 126);
+    }
+
+    this.ctx.restore();
+  },
+
+  spawnTouchRipple(x, y) {
+    if (!this.touchRipples) this.touchRipples = [];
+    this.touchRipples.push({ x, y, radius: 4, alpha: 0.85, maxRadius: 32 });
+  },
+
+  drawTouchRipples() {
+    if (!this.touchRipples || this.touchRipples.length === 0) return;
+    this.ctx.save();
+    for (let i = this.touchRipples.length - 1; i >= 0; i--) {
+      const r = this.touchRipples[i];
+      r.radius += 1.8;
+      r.alpha -= 0.04;
+      if (r.alpha <= 0 || r.radius >= r.maxRadius) {
+        this.touchRipples.splice(i, 1);
+        continue;
+      }
+      this.ctx.strokeStyle = `rgba(245, 158, 11, ${r.alpha})`;
+      this.ctx.lineWidth = 2.5;
+      this.ctx.beginPath();
+      this.ctx.arc(r.x, r.y, r.radius, 0, Math.PI * 2);
+      this.ctx.stroke();
+    }
+    this.ctx.restore();
+  },
+
+  initAmbientBackdropParticles() {
+    this.ambientParticles = [];
+    const colors = ['rgba(245, 158, 11, 0.20)', 'rgba(56, 189, 248, 0.16)', 'rgba(236, 72, 153, 0.18)', 'rgba(16, 185, 129, 0.16)'];
+    for (let i = 0; i < 16; i++) {
+      this.ambientParticles.push({
+        x: Math.random() * 360,
+        y: Math.random() * 460,
+        radius: 2.5 + Math.random() * 3.5,
+        color: colors[i % colors.length],
+        speedY: 0.12 + Math.random() * 0.20,
+        speedX: (Math.random() - 0.5) * 0.15,
+        pulse: Math.random() * Math.PI * 2
+      });
+    }
+  },
+
+  drawAmbientBackdropParticles() {
+    if (!this.ambientParticles) return;
+    this.ctx.save();
+    this.ambientParticles.forEach(p => {
+      p.y -= p.speedY;
+      p.x += Math.sin(p.pulse) * p.speedX;
+      p.pulse += 0.02;
+      if (p.y < -10) p.y = 470;
+      if (p.x < -10) p.x = 370;
+      if (p.x > 370) p.x = -10;
+
+      this.ctx.fillStyle = p.color;
+      this.ctx.beginPath();
+      this.ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+      this.ctx.fill();
+    });
+    this.ctx.restore();
+  },
+
+  drawCompactCanvasTrainPills() {
+    if (!this.level || (!this.level.trainConfig && !this.level.isTrain)) return;
+    this.ctx.save();
+
+    const spd = this.trainSpeedMultiplier || 1.0;
+    const isSlow = spd === 0.5;
+
+    // 1. Speed Toggle Pill (x: 120, y: 7, w: 62, h: 22)
+    this.ctx.fillStyle = '#fdfbf7';
+    this.ctx.strokeStyle = '#e2dbca';
+    this.ctx.lineWidth = 1.5;
+    this.ctx.shadowColor = 'rgba(104, 92, 76, 0.15)';
+    this.ctx.shadowBlur = 4;
+    this.ctx.shadowOffsetY = 2;
+    this.ctx.beginPath();
+    this.ctx.roundRect(120, 7, 62, 22, 11);
+    this.ctx.fill();
+    this.ctx.stroke();
+
+    this.ctx.shadowBlur = 0;
+    this.ctx.shadowOffsetY = 0;
+
+    this.ctx.fillStyle = spd >= 3.0 ? '#ab364f' : '#685c4c';
+    this.ctx.font = 'bold 10px sans-serif';
+    this.ctx.textAlign = 'center';
+    this.ctx.textBaseline = 'middle';
+    const speedIcon = spd >= 3.0 ? '🚀' : '⚡';
+    const speedStr = `${speedIcon} ${spd.toFixed(1)}x`;
+    this.ctx.fillText(speedStr, 151, 18);
+
+    // 2. Horn Pill (x: 190, y: 7, w: 56, h: 22)
+    this.ctx.fillStyle = '#fef3c7';
+    this.ctx.strokeStyle = '#fcd34d';
+    this.ctx.lineWidth = 1.5;
+    this.ctx.shadowColor = 'rgba(217, 119, 6, 0.15)';
+    this.ctx.shadowBlur = 4;
+    this.ctx.shadowOffsetY = 2;
+    this.ctx.beginPath();
+    this.ctx.roundRect(190, 7, 56, 22, 11);
+    this.ctx.fill();
+    this.ctx.stroke();
+
+    this.ctx.fillStyle = '#92400e';
+    this.ctx.font = 'bold 9px sans-serif';
+    this.ctx.fillText('📢 HORN', 218, 18);
+
+    this.ctx.restore();
   },
 
   getPathLength(path) {
@@ -1931,8 +2422,105 @@ const ArrowGame = {
     }
   },
 
+  initPerimeterCache() {
+    if (this._perimeterCache) return;
+    this._perimeterCache = new Map();
+    for (let i = 0; i < 480; i++) {
+      const p = i / 10;
+      this._perimeterCache.set(i, this.calculatePerimeterCoords(p));
+    }
+  },
+
+  initOffscreenTrack() {
+    if (!this.offscreenTrackCanvas) {
+      this.offscreenTrackCanvas = document.createElement('canvas');
+      this.offscreenTrackCanvas.width = 360;
+      this.offscreenTrackCanvas.height = 460;
+    }
+
+    const offCtx = this.offscreenTrackCanvas.getContext('2d');
+    offCtx.clearRect(0, 0, 360, 460);
+
+    // 1. Base track path
+    offCtx.save();
+    offCtx.strokeStyle = '#e5dfcf';
+    offCtx.lineWidth = 20;
+    offCtx.lineCap = 'round';
+    offCtx.lineJoin = 'round';
+    offCtx.beginPath();
+    offCtx.roundRect(
+      GRID_COORDS.offsetX - 20,
+      GRID_COORDS.offsetY - 20,
+      12 * GRID_COORDS.pitch + 40,
+      12 * GRID_COORDS.pitch + 40,
+      18
+    );
+    offCtx.stroke();
+
+    // Inner guideline
+    offCtx.strokeStyle = '#fbfaf5';
+    offCtx.lineWidth = 2;
+    offCtx.stroke();
+
+    // 2. 48 Wooden Railroad Sleepers (Ties)
+    for (let i = 0; i < 48; i++) {
+      const coords = this.getPerimeterCoords(i);
+      const coords1 = this.getPerimeterCoords((i - 0.1 + 48) % 48);
+      const coords2 = this.getPerimeterCoords((i + 0.1 + 48) % 48);
+      const angle = Math.atan2(coords2.y - coords1.y, coords2.x - coords1.x);
+
+      offCtx.save();
+      offCtx.translate(coords.x, coords.y);
+      offCtx.rotate(angle);
+
+      // Wooden sleeper tie bar
+      offCtx.fillStyle = '#685c4c';
+      offCtx.fillRect(-2, -13, 4, 26);
+
+      // Iron track fastener rivets
+      offCtx.fillStyle = '#44403c';
+      offCtx.beginPath();
+      offCtx.arc(0, -9, 1.2, 0, Math.PI * 2);
+      offCtx.arc(0, 9, 1.2, 0, Math.PI * 2);
+      offCtx.fill();
+
+      offCtx.restore();
+    }
+
+    // 3. Steel Parallel Rails
+    const minX = GRID_COORDS.offsetX - 20;
+    const minY = GRID_COORDS.offsetY - 20;
+    const width = 12 * GRID_COORDS.pitch + 40;
+    const height = 12 * GRID_COORDS.pitch + 40;
+    const R = 18;
+
+    // Outer Steel Rail
+    offCtx.strokeStyle = '#94a3b8';
+    offCtx.lineWidth = 2.5;
+    offCtx.beginPath();
+    offCtx.roundRect(minX - 7, minY - 7, width + 14, height + 14, R + 7);
+    offCtx.stroke();
+
+    // Inner Steel Rail
+    offCtx.strokeStyle = '#cbd5e1';
+    offCtx.lineWidth = 2.5;
+    offCtx.beginPath();
+    offCtx.roundRect(minX + 7, minY + 7, width - 14, height - 14, Math.max(2, R - 7));
+    offCtx.stroke();
+
+    offCtx.restore();
+  },
+
   getPerimeterCoords(pos) {
     const p = ((pos % 48) + 48) % 48;
+    const key = Math.round(p * 10) % 480;
+    if (this._perimeterCache && this._perimeterCache.has(key)) {
+      return this._perimeterCache.get(key);
+    }
+    return this.calculatePerimeterCoords(p);
+  },
+
+  calculatePerimeterCoords(p) {
 
     const R = 18;
     const minX = GRID_COORDS.offsetX - 20; // 10
@@ -1999,6 +2587,98 @@ const ArrowGame = {
       return 48 - row;
     }
     return 0;
+  },
+
+  drawRailwaySleepers() {
+    if (!this.level || (!this.level.trainConfig && !this.level.isTrain)) return;
+    this.ctx.save();
+
+    // 48 sleepers along the perimeter loop
+    for (let i = 0; i < 48; i++) {
+      const coords = this.getPerimeterCoords(i);
+      const coords1 = this.getPerimeterCoords((i - 0.1 + 48) % 48);
+      const coords2 = this.getPerimeterCoords((i + 0.1 + 48) % 48);
+      const angle = Math.atan2(coords2.y - coords1.y, coords2.x - coords1.x);
+
+      this.ctx.save();
+      this.ctx.translate(coords.x, coords.y);
+      this.ctx.rotate(angle);
+
+      // Wooden sleeper tie bar perpendicular to track
+      this.ctx.fillStyle = '#685c4c';
+      this.ctx.fillRect(-2, -13, 4, 26);
+
+      // Iron track fastener rivets
+      this.ctx.fillStyle = '#44403c';
+      this.ctx.beginPath();
+      this.ctx.arc(0, -9, 1.2, 0, Math.PI * 2);
+      this.ctx.arc(0, 9, 1.2, 0, Math.PI * 2);
+      this.ctx.fill();
+
+      this.ctx.restore();
+    }
+    this.ctx.restore();
+  },
+
+  drawSteelRails() {
+    if (!this.level || (!this.level.trainConfig && !this.level.isTrain)) return;
+    const minX = GRID_COORDS.offsetX - 20;
+    const minY = GRID_COORDS.offsetY - 20;
+    const width = 12 * GRID_COORDS.pitch + 40;
+    const height = 12 * GRID_COORDS.pitch + 40;
+    const R = 18;
+
+    this.ctx.save();
+    
+    // Outer Steel Rail
+    this.ctx.strokeStyle = '#94a3b8';
+    this.ctx.lineWidth = 2.5;
+    this.ctx.beginPath();
+    this.ctx.roundRect(minX - 7, minY - 7, width + 14, height + 14, R + 7);
+    this.ctx.stroke();
+
+    // Inner Steel Rail
+    this.ctx.strokeStyle = '#cbd5e1';
+    this.ctx.lineWidth = 2.5;
+    this.ctx.beginPath();
+    this.ctx.roundRect(minX + 7, minY + 7, width - 14, height - 14, Math.max(2, R - 7));
+    this.ctx.stroke();
+
+    this.ctx.restore();
+  },
+
+  drawRailwaySignals() {
+    if (!this.level || (!this.level.trainConfig && !this.level.isTrain)) return;
+    // 4 Corner Railway Signal Posts
+    const corners = [
+      { col: 0, row: 0 },
+      { col: 12, row: 0 },
+      { col: 12, row: 12 },
+      { col: 0, row: 12 }
+    ];
+
+    corners.forEach((c, idx) => {
+      const px = GRID_COORDS.offsetX + c.col * GRID_COORDS.pitch;
+      const py = GRID_COORDS.offsetY + c.row * GRID_COORDS.pitch;
+
+      this.ctx.save();
+      // Signal post base
+      this.ctx.fillStyle = '#292524';
+      this.ctx.beginPath();
+      this.ctx.arc(px, py, 6, 0, Math.PI * 2);
+      this.ctx.fill();
+
+      // Pulsing Green/Red LED Signal lamp
+      const lampColor = (Math.floor(Date.now() / 600) + idx) % 2 === 0 ? '#10b981' : '#ef4444';
+      this.ctx.fillStyle = lampColor;
+      this.ctx.shadowColor = lampColor;
+      this.ctx.shadowBlur = 8;
+      this.ctx.beginPath();
+      this.ctx.arc(px, py, 3.5, 0, Math.PI * 2);
+      this.ctx.fill();
+
+      this.ctx.restore();
+    });
   },
 
   drawLinkage(endPos, startPos) {

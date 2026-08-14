@@ -1,0 +1,17 @@
+{
+  "name": "Winding Arrows: Puzzle Escape",
+  "short_name": "Winding Arrows",
+  "description": "Solve winding polyline arrow puzzles and dodge looping trains in this cozy logic escape game!",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#fbfaf5",
+  "theme_color": "#ab364f",
+  "icons": [
+    {
+      "src": "src/assets/app_icon.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}
