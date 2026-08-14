@@ -40,7 +40,7 @@ const App = {
     window.addEventListener('touchstart', startAppBGM, { once: true });
     window.addEventListener('click', startAppBGM, { once: true });
 
-    // Pause background audio when app goes to background / power button pressed
+    // Pause background audio & auto-open Pause popover when app goes to background / power button pressed
     const handleVisibilityOrPause = () => {
       if (document.hidden || document.visibilityState === 'hidden') {
         if (typeof SoundSystem !== 'undefined' && SoundSystem.stopTrainMusic) {
@@ -48,6 +48,11 @@ const App = {
         }
         if (typeof SoundSystem !== 'undefined' && SoundSystem.ctx && SoundSystem.ctx.state === 'running') {
           SoundSystem.ctx.suspend();
+        }
+        // Auto-open Pause Popover if in active gameplay
+        if (this.activeScreen === 'gameplay-screen') {
+          const pauseOverlay = document.getElementById('pause-overlay');
+          if (pauseOverlay) pauseOverlay.classList.add('active');
         }
       } else {
         if (typeof SoundSystem !== 'undefined' && SoundSystem.ctx && SoundSystem.ctx.state === 'suspended') {
