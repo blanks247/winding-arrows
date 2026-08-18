@@ -820,7 +820,7 @@ function checkSimCollision(moving, all) {
   
   const dx = head.x - prev.x;
   const dy = head.y - prev.y;
-  const len = Math.hypot(dx, dy);
+  const len = Math.hypot(dx, dy) || 1;
 
   const exitRay = {
     start: head,
@@ -836,6 +836,17 @@ function checkSimCollision(moving, all) {
   }
   movingSegments.push(exitRay);
 
+  // 1. Check self-collision (arrow exit path intersecting its own body)
+  for (let i = 0; i < movingSegments.length; i++) {
+    for (let j = 0; j < movingSegments.length; j++) {
+      if (Math.abs(i - j) <= 1) continue;
+      const d = getMinDistanceBetweenSegmentsSim(movingSegments[i].start, movingSegments[i].end, movingSegments[j].start, movingSegments[j].end);
+      const threshold = 3.5 * moving.strokeWidth;
+      if (d < threshold) return true; // Self-collision! Level is invalid!
+    }
+  }
+
+  // 2. Check collision with other arrows
   for (const other of all) {
     if (other.id === moving.id || other.status === "ESCAPED") continue;
 
