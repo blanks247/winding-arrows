@@ -1259,10 +1259,11 @@ const ArrowGame = {
     }
 
     // 1. Update Escaping, Rebounding, & Bump Physics
+    const dtM = this.dtMultiplier || 1.0;
     this.arrows.forEach(a => {
       if (a.status === 'ESCAPING') {
-        a.currentSpeed = (a.currentSpeed || a.speed) + 0.95;
-        a.progress += a.currentSpeed;
+        a.currentSpeed = (a.currentSpeed || a.speed) + (0.95 * dtM);
+        a.progress += (a.currentSpeed * dtM);
 
         // Keep arrow size constant during escape
         a.squeezeFactor = 1.0;
@@ -3012,9 +3013,15 @@ const ArrowGame = {
       tg.timer = Math.max(0, tg.timer - 1);
     });
   },
-  loop() {
+  loop(timestamp) {
+    if (!this.lastFrameTime) this.lastFrameTime = timestamp || performance.now();
+    const now = timestamp || performance.now();
+    const dt = Math.min(0.05, (now - this.lastFrameTime) / 1000);
+    this.lastFrameTime = now;
+    this.dtMultiplier = Math.max(0.8, Math.min(2.5, dt / 0.0166));
+
     this.tick();
     this.render();
-    requestAnimationFrame(() => this.loop());
+    requestAnimationFrame((ts) => this.loop(ts));
   }
 };
