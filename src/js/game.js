@@ -700,13 +700,26 @@ const ArrowGame = {
       if (this.checkGateCollision(movingArrow)) return true;
     }
 
-    // 1. Check collision with other active/idle arrows (using continuous collision sweep to prevent tunneling at high speeds)
+    // 1. Check self-collision (moving head touching its own trailing body) & collision with other active/idle arrows
     let hitArrow = false;
     const speedVal = movingArrow.currentSpeed || movingArrow.speed || 8;
     const prevProgress = Math.max(0, progress - speedVal);
     const prevHeadDist = prevProgress + movingArrowLength;
     const prevPts = this.getPointsAlongPath(movingArrow.smoothPath, prevProgress, prevHeadDist);
     const prevHeadPt = prevPts.length > 0 ? prevPts[prevPts.length - 1] : headPt;
+
+    // Check self-collision: head looping back to hit its own trailing tail/body
+    const selfBodyEndDist = Math.max(0, headDist - 24);
+    if (selfBodyEndDist > progress) {
+      const selfBodyPts = this.getPointsAlongPath(movingArrow.smoothPath, progress, selfBodyEndDist);
+      for (let i = 0; i < selfBodyPts.length - 1; i++) {
+        const d = this.getMinDistanceBetweenSegments(prevHeadPt, headPt, selfBodyPts[i], selfBodyPts[i + 1]);
+        const threshold = 3.5 * movingArrow.strokeWidth;
+        if (d < threshold) {
+          hitArrow = true;
+        }
+      }
+    }
 
     this.arrows.forEach(other => {
       let shouldCheck = false;
