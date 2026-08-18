@@ -159,13 +159,10 @@ body {
   transition: opacity var(--transition-normal);
   z-index: 10;
 }
-  transition: opacity var(--transition-normal);
-  z-index: 10;
-}
 
 .screen.active {
-  opacity: 1;
-  pointer-events: auto;
+  opacity: 1 !important;
+  pointer-events: auto !important;
 }
 
 .screen-header {
@@ -772,18 +769,6 @@ body {
   font-weight: 800;
   letter-spacing: 0.8px;
   color: #574d3e;
-}
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  color: #685c4c;
-}
-  margin-bottom: 2px;
-}
-
-.btn-3d-label {
-  font-size: 0.65rem;
-  font-weight: 800;
-  letter-spacing: 0.5px;
 }
 
 .shop-balance {
