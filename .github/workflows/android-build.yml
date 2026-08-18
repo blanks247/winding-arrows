@@ -37,9 +37,11 @@ jobs:
           cd android
           chmod +x gradlew
 
-      - name: Generate Release Keystore
+      - name: Check or Generate Permanent Release Keystore
         run: |
-          keytool -genkey -v -keystore release.keystore -alias windingkey -keyalg RSA -keysize 2048 -validity 10000 -storepass windingpassword -keypass windingpassword -dname "CN=WindingArrows, OU=Games, O=WindingArrows, L=City, ST=State, C=US"
+          if [ ! -f release.keystore ]; then
+            keytool -genkey -v -keystore release.keystore -alias windingkey -keyalg RSA -keysize 2048 -validity 10000 -storepass windingpassword -keypass windingpassword -dname "CN=WindingArrows, OU=Games, O=WindingArrows, L=City, ST=State, C=US"
+          fi
 
       - name: Build Android APK (Testing)
         run: |
@@ -63,3 +65,9 @@ jobs:
         with:
           name: WindingArrows-PlayStore-AAB
           path: android/app/build/outputs/bundle/release/app-release.aab
+
+      - name: Backup Keystore Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: WindingArrows-Keystore-Backup
+          path: release.keystore
