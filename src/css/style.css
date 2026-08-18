@@ -1,6 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Mono:wght@400;700&display=swap');
 
 :root {
+  --status-bar-height: 44px;
+  --nav-bar-height: 32px;
   --bg-gradient: linear-gradient(135deg, #f7f5ed 0%, #fbfaf5 50%, #f4f1e6 100%);
   --bg-card: #fdfbf7;
   --bg-card-border: #e2dbca;
@@ -146,14 +148,17 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  padding-top: max(env(safe-area-inset-top, 0px), 32px);
-  padding-bottom: max(env(safe-area-inset-bottom, 0px), 20px);
+  padding-top: max(env(safe-area-inset-top, 0px), var(--status-bar-height, 44px), 44px);
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), var(--nav-bar-height, 32px), 32px);
   padding-left: max(env(safe-area-inset-left, 0px), 16px);
   padding-right: max(env(safe-area-inset-right, 0px), 16px);
   display: flex;
   flex-direction: column;
   opacity: 0;
   pointer-events: none;
+  transition: opacity var(--transition-normal);
+  z-index: 10;
+}
   transition: opacity var(--transition-normal);
   z-index: 10;
 }

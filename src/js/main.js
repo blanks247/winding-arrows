@@ -71,15 +71,40 @@ const App = {
 
     // Intercept native Android device Back Key & Gesture Navigation triggers
     const handleBackButton = () => {
-      if (this.activeScreen === 'gameplay-screen') {
+      const activeScreen = this.activeScreen;
+      const pauseOverlay = document.getElementById('pause-overlay');
+      const settingsOverlay = document.getElementById('settings-overlay');
+      const levelCompleteOverlay = document.getElementById('level-complete-overlay');
+
+      // 1. If any overlay is active, close overlay first
+      if (settingsOverlay && settingsOverlay.classList.contains('active')) {
+        settingsOverlay.classList.remove('active');
+        return "handled";
+      }
+      if (pauseOverlay && pauseOverlay.classList.contains('active')) {
+        pauseOverlay.classList.remove('active');
+        return "handled";
+      }
+      if (levelCompleteOverlay && levelCompleteOverlay.classList.contains('active')) {
+        levelCompleteOverlay.classList.remove('active');
         this.showScreen('level-select-screen');
         this.renderLevelSelect();
         return "handled";
-      } else if (this.activeScreen === 'level-select-screen' || this.activeScreen === 'shop-screen') {
+      }
+
+      // 2. Screen navigation hierarchy: Gameplay -> Level Select -> Main Menu -> Exit
+      if (activeScreen === 'gameplay-screen') {
+        this.showScreen('level-select-screen');
+        this.renderLevelSelect();
+        return "handled";
+      } else if (activeScreen === 'level-select-screen' || activeScreen === 'shop-screen') {
         this.showScreen('menu-screen');
         return "handled";
+      } else if (activeScreen === 'menu-screen') {
+        return "exit";
       }
-      return "exit";
+
+      return "handled";
     };
 
     window.onAndroidBack = handleBackButton;
