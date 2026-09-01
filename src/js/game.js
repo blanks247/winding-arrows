@@ -309,8 +309,8 @@ const ArrowGame = {
     const displayW = Math.max(200, Math.floor(logicalW * scale));
     const displayH = Math.max(255, Math.floor(logicalH * scale));
 
-    // High-DPI (Retina) Pixel Buffer
-    const dpr = window.devicePixelRatio || 1;
+    // High-DPI (Retina) Pixel Buffer - Capped at 2.0 max to prevent GPU fill-rate throttling on budget devices
+    const dpr = Math.min(2.0, window.devicePixelRatio || 1);
     this.canvas.width = Math.round(displayW * dpr);
     this.canvas.height = Math.round(displayH * dpr);
 
@@ -1249,10 +1249,13 @@ const ArrowGame = {
 
     // Update smoke particles positions and decay
     if (this.smokeParticles) {
+      if (this.smokeParticles.length > 12) {
+        this.smokeParticles.splice(0, this.smokeParticles.length - 12);
+      }
       this.smokeParticles.forEach(sp => {
         sp.x += sp.vx;
         sp.y += sp.vy;
-        sp.size += 0.15; // puff expansion
+        sp.size += 0.12; // puff expansion
         sp.alpha -= sp.decay;
       });
       this.smokeParticles = this.smokeParticles.filter(sp => sp.alpha > 0);
@@ -2704,18 +2707,22 @@ const ArrowGame = {
   drawTrainSegment(color, startPos, endPos, isEngine) {
     this.ctx.save();
 
+    const steps = 16;
+    const pathPoints = [];
+    for (let i = 0; i <= steps; i++) {
+      const p = startPos + (i / steps) * (endPos - startPos);
+      pathPoints.push(this.getPerimeterCoords((p + 48) % 48));
+    }
+
     // 1. Draw background chassis outline
     this.ctx.strokeStyle = '#292524';
     this.ctx.lineWidth = 18;
     this.ctx.lineCap = 'round';
     this.ctx.lineJoin = 'round';
     this.ctx.beginPath();
-    const steps = 24;
-    for (let i = 0; i <= steps; i++) {
-      const p = startPos + (i / steps) * (endPos - startPos);
-      const coords = this.getPerimeterCoords((p + 48) % 48);
-      if (i === 0) this.ctx.moveTo(coords.x, coords.y);
-      else this.ctx.lineTo(coords.x, coords.y);
+    this.ctx.moveTo(pathPoints[0].x, pathPoints[0].y);
+    for (let i = 1; i <= steps; i++) {
+      this.ctx.lineTo(pathPoints[i].x, pathPoints[i].y);
     }
     this.ctx.stroke();
 
@@ -2723,11 +2730,9 @@ const ArrowGame = {
     this.ctx.strokeStyle = color;
     this.ctx.lineWidth = 14;
     this.ctx.beginPath();
-    for (let i = 0; i <= steps; i++) {
-      const p = startPos + (i / steps) * (endPos - startPos);
-      const coords = this.getPerimeterCoords((p + 48) % 48);
-      if (i === 0) this.ctx.moveTo(coords.x, coords.y);
-      else this.ctx.lineTo(coords.x, coords.y);
+    this.ctx.moveTo(pathPoints[0].x, pathPoints[0].y);
+    for (let i = 1; i <= steps; i++) {
+      this.ctx.lineTo(pathPoints[i].x, pathPoints[i].y);
     }
     this.ctx.stroke();
 
