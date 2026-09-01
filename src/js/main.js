@@ -13,6 +13,9 @@ const App = {
 
     ArrowGame.init();
     this.loadProgress();
+    if (typeof LeaderboardService !== 'undefined' && LeaderboardService.syncProgress) {
+      LeaderboardService.syncProgress();
+    }
     this.bindEvents();
     this.renderLevelSelect();
 
@@ -193,20 +196,38 @@ const App = {
 
     // Fetch live global leaderboard data
     const data = await LeaderboardService.fetchGlobalLeaderboard();
-    const { players, level100Winner, currentPlayerId } = data;
+    const { players, level100Winner, level250Winner, level500Winner, trainMasterWinner, currentPlayerId } = data;
 
-    // Update Hall of Fame card
-    const hofNameEl = document.getElementById('hof-winner-name');
-    const hofSubEl = document.getElementById('hof-winner-desc');
-    if (level100Winner && level100Winner.maxLevel >= 100) {
-      if (hofNameEl) hofNameEl.textContent = level100Winner.name;
-      if (hofSubEl) hofSubEl.textContent = `First solver to clear Level 100!`;
-    } else {
-      if (hofNameEl) hofNameEl.textContent = "👑 UNCLAIMED CROWN";
-      if (hofSubEl) hofSubEl.textContent = "Be the 1st solver to clear Level 100!";
-    }
+    this.cachedGlobalPlayers = players;
+    this.cachedCurrentPlayerId = currentPlayerId;
 
-    // Render global leaderboard list
+    // Helper for milestone winner rendering
+    const updateWinnerRow = (avatarId, nameId, subId, winnerObj, defaultSub) => {
+      const avEl = document.getElementById(avatarId);
+      const nmEl = document.getElementById(nameId);
+      const sbEl = document.getElementById(subId);
+      if (winnerObj) {
+        if (avEl) {
+          if (winnerObj.avatar && winnerObj.avatar.startsWith('data:image')) {
+            avEl.innerHTML = `<img src="${winnerObj.avatar}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
+          } else {
+            avEl.textContent = winnerObj.avatar || '🥇';
+          }
+        }
+        if (nmEl) nmEl.textContent = winnerObj.name;
+        if (sbEl) sbEl.textContent = `Pioneer Solver! (${winnerObj.maxLevel || 0} Levels)`;
+      } else {
+        if (nmEl) nmEl.textContent = "UNCLAIMED CROWN";
+        if (sbEl) sbEl.textContent = defaultSub;
+      }
+    };
+
+    updateWinnerRow('ms-avatar-100', 'ms-name-100', 'ms-sub-100', level100Winner, "Be the 1st solver to clear Level 100!");
+    updateWinnerRow('ms-avatar-250', 'ms-name-250', 'ms-sub-250', level250Winner, "Be the 1st solver to clear Level 250!");
+    updateWinnerRow('ms-avatar-500', 'ms-name-500', 'ms-sub-500', level500Winner, "Be the 1st solver to clear Level 500!");
+    updateWinnerRow('ms-avatar-train', 'ms-name-train', 'ms-sub-train', trainMasterWinner, "Be the 1st to clear 50 Train sectors!");
+
+    // Render global leaderboard list (Top 100)
     const listEl = document.getElementById('leaderboard-list');
     if (listEl) {
       listEl.innerHTML = '';
@@ -218,7 +239,9 @@ const App = {
           const isMe = item.id === currentPlayerId;
           const div = document.createElement('div');
           div.className = `leaderboard-item ${rank <= 3 ? 'top-three' : ''} ${isMe ? 'lb-item-me' : ''}`;
-          const tagText = item.maxLevel >= 100 ? '👑 Hall of Fame Champion' : rank === 1 ? '🥇 #1 Master Solver' : rank === 2 ? '🥈 #2 Expert Solver' : rank === 3 ? '🥉 #3 Pro Solver' : `Rank #${rank} Solver`;
+          if (isMe) div.id = 'my-leaderboard-card-item';
+
+          const tagText = item.maxLevel >= 500 ? '💎 Sector 500 Conqueror' : item.maxLevel >= 250 ? '🌟 Sector 250 Master' : item.maxLevel >= 100 ? '👑 Level 100 Champion' : rank === 1 ? '🥇 #1 Master Solver' : rank === 2 ? '🥈 #2 Expert Solver' : rank === 3 ? '🥉 #3 Pro Solver' : `Rank #${rank} Solver`;
           const avatarHtml = (item.avatar && item.avatar.startsWith('data:image'))
             ? `<img src="${item.avatar}" style="width:28px; height:28px; border-radius:50%; object-fit:cover; margin-right:6px; vertical-align:middle;">`
             : `<span style="font-size:1.2rem; margin-right:6px; vertical-align:middle;">${item.avatar || '🦊'}</span>`;
@@ -244,14 +267,13 @@ const App = {
     const myMaxLevel = this.clearedLevels.length > 0 ? Math.max(...this.clearedLevels) : 0;
 
     if (playerRankVal) {
-      playerRankVal.textContent = `#${myRank}`;
+      playerRankVal.textContent = myIndex !== -1 && myIndex < 100 ? `#${myRank}` : `#${myRank !== '--' ? myRank : '--'}`;
     }
     if (playerRankDesc) {
-      if (myMaxLevel >= 100) {
-        playerRankDesc.textContent = "🎉 You cleared Level 100 & claimed Hall of Fame!";
+      if (myIndex !== -1 && myIndex < 100) {
+        playerRankDesc.textContent = `Rank #${myRank} • Tap card to scroll to your rank in Top 100! 🎯`;
       } else {
-        const remaining = 100 - myMaxLevel;
-        playerRankDesc.textContent = `Level ${myMaxLevel} Cleared • ${remaining} levels to Level 100 Crown!`;
+        playerRankDesc.textContent = `Rank #${myRank} • Top 100 currently full! Keep playing to claim a spot!`;
       }
     }
   },
@@ -349,6 +371,124 @@ const App = {
     const btnAchBack = document.getElementById('btn-achievements-back');
     if (btnAchBack) btnAchBack.addEventListener('click', () => this.showScreen('menu-screen'));
 
+    // Leaderboard 2 Top Tabs Switching
+    const tabRanks = document.getElementById('tab-lb-ranks');
+    const tabAch = document.getElementById('tab-lb-achievements');
+    const viewRanks = document.getElementById('lb-tab-ranks-view');
+    const viewAch = document.getElementById('lb-tab-achievements-view');
+
+    if (tabRanks && tabAch) {
+      tabRanks.addEventListener('click', () => {
+        SoundSystem.playSelect();
+        tabRanks.classList.add('active');
+        tabAch.classList.remove('active');
+        if (viewRanks) viewRanks.style.display = 'flex';
+        if (viewAch) viewAch.style.display = 'none';
+      });
+
+      tabAch.addEventListener('click', () => {
+        SoundSystem.playSelect();
+        tabAch.classList.add('active');
+        tabRanks.classList.remove('active');
+        if (viewAch) viewAch.style.display = 'flex';
+        if (viewRanks) viewRanks.style.display = 'none';
+      });
+    }
+
+    // Scroll to Player's Rank Card inside Top 100 List
+    const btnScrollToMe = document.getElementById('btn-scroll-to-player-rank');
+    if (btnScrollToMe) {
+      btnScrollToMe.addEventListener('click', () => {
+        SoundSystem.playSelect();
+        const scrollArea = document.getElementById('lb-scroll-container');
+        const myItem = document.getElementById('my-leaderboard-card-item');
+
+        if (scrollArea && myItem) {
+          scrollArea.scrollTo({
+            top: Math.max(0, myItem.offsetTop - 60),
+            behavior: 'smooth'
+          });
+          myItem.style.transition = 'transform 0.3s ease, border-color 0.3s ease';
+          myItem.style.transform = 'scale(1.04)';
+          setTimeout(() => { myItem.style.transform = 'scale(1)'; }, 600);
+        } else {
+          const descEl = document.getElementById('player-rank-desc');
+          if (descEl) descEl.textContent = 'Top 100 spots are currently filled! Keep playing to claim your spot!';
+        }
+      });
+    }
+
+    // Milestone Category Cards Tap -> Open Category Top 100 Modal
+    const catOverlay = document.getElementById('category-top100-overlay');
+    const catTitle = document.getElementById('cat-top100-title');
+    const catList = document.getElementById('cat-top100-list');
+    const catVal = document.getElementById('cat-player-rank-val');
+    const catDesc = document.getElementById('cat-player-rank-desc');
+    const btnCloseCat = document.getElementById('btn-close-cat-top100');
+
+    document.querySelectorAll('.milestone-card').forEach(card => {
+      card.addEventListener('click', () => {
+        SoundSystem.playSelect();
+        const catKey = card.getAttribute('data-category');
+        const titleText = catKey === 'level100' ? '👑 LEVEL 100 TOP 100' : catKey === 'level250' ? '🌟 LEVEL 250 TOP 100' : catKey === 'level500' ? '💎 LEVEL 500 TOP 100' : '🚂 TRAIN DODGE TOP 100';
+        
+        if (catTitle) catTitle.textContent = titleText;
+        if (catList) {
+          catList.innerHTML = '';
+          const players = this.cachedGlobalPlayers || [];
+          const myId = this.cachedCurrentPlayerId;
+          let filtered = [];
+
+          if (catKey === 'level100') filtered = players.filter(p => p.maxLevel >= 100);
+          else if (catKey === 'level250') filtered = players.filter(p => p.maxLevel >= 250);
+          else if (catKey === 'level500') filtered = players.filter(p => p.maxLevel >= 500);
+          else filtered = players.filter(p => (p.totalCleared || p.maxLevel) >= 10);
+
+          if (filtered.length === 0) {
+            catList.innerHTML = '<div style="text-align:center; padding:30px 10px; color:#78716c; font-weight:600;">No solvers in this category yet! Be the 1st to claim the crown! 👑</div>';
+          } else {
+            filtered.forEach((item, idx) => {
+              const r = idx + 1;
+              const isMe = item.id === myId;
+              const div = document.createElement('div');
+              div.className = `leaderboard-item ${r <= 3 ? 'top-three' : ''} ${isMe ? 'lb-item-me' : ''}`;
+              const avatarHtml = (item.avatar && item.avatar.startsWith('data:image'))
+                ? `<img src="${item.avatar}" style="width:28px; height:28px; border-radius:50%; object-fit:cover; margin-right:6px; vertical-align:middle;">`
+                : `<span style="font-size:1.2rem; margin-right:6px; vertical-align:middle;">${item.avatar || '🦊'}</span>`;
+
+              div.innerHTML = `
+                <span class="lb-rank">${r === 1 ? '🥇' : r === 2 ? '🥈' : r === 3 ? '🥉' : '#' + r}</span>
+                <div class="lb-info">
+                  <span class="lb-name" style="${isMe ? 'color:#ab364f; font-weight:800;' : ''}">${avatarHtml}${item.name} ${isMe ? '(YOU)' : ''}</span>
+                  <span class="lb-detail">Pioneer Solver #${r}</span>
+                </div>
+                <span class="lb-level">Lvl ${item.maxLevel}</span>
+              `;
+              catList.appendChild(div);
+            });
+          }
+
+          const myIndexInCat = filtered.findIndex(p => p.id === myId);
+          if (myIndexInCat !== -1) {
+            if (catVal) catVal.textContent = `#${myIndexInCat + 1}`;
+            if (catDesc) catDesc.textContent = `You are placed #${myIndexInCat + 1} in this Hall of Fame category! 🏆`;
+          } else {
+            if (catVal) catVal.textContent = `--`;
+            if (catDesc) catDesc.textContent = `Top 100 spots are currently full! Keep playing to claim a spot!`;
+          }
+        }
+
+        if (catOverlay) catOverlay.classList.add('active');
+      });
+    });
+
+    if (btnCloseCat && catOverlay) {
+      btnCloseCat.addEventListener('click', () => {
+        SoundSystem.playSelect();
+        catOverlay.classList.remove('active');
+      });
+    }
+
     // Gamer Profile modal listeners
     const btnEditName = document.getElementById('btn-edit-profile-name');
     const profileModal = document.getElementById('profile-overlay');
@@ -402,20 +542,35 @@ const App = {
       });
     }
 
+    const btnMenuProfile = document.getElementById('btn-menu-profile');
+    const openProfileModalHandler = async () => {
+      SoundSystem.playSelect();
+      const profile = LeaderboardService.getPlayerProfile();
+      if (inputProfileName) inputProfileName.value = profile.playerName;
+      updateAvatarPreview(profile.avatar);
+
+      // Update stats
+      const maxLevel = this.clearedLevels.length > 0 ? Math.max(...this.clearedLevels) : 0;
+      const statLvl = document.getElementById('p-stat-level');
+      if (statLvl) statLvl.textContent = maxLevel;
+
+      // Dynamically sync and fetch live global rank
+      const data = await LeaderboardService.fetchGlobalLeaderboard();
+      const { players, currentPlayerId } = data;
+      const myIndex = players.findIndex(p => p.id === currentPlayerId);
+      const statRank = document.getElementById('p-stat-rank');
+      if (statRank) {
+        statRank.textContent = myIndex !== -1 ? `#${myIndex + 1}` : '#--';
+      }
+
+      profileModal.classList.add('active');
+    };
+
     if (btnEditName && profileModal) {
-      btnEditName.addEventListener('click', () => {
-        SoundSystem.playSelect();
-        const profile = LeaderboardService.getPlayerProfile();
-        if (inputProfileName) inputProfileName.value = profile.playerName;
-        updateAvatarPreview(profile.avatar);
-
-        // Update stats
-        const maxLevel = this.clearedLevels.length > 0 ? Math.max(...this.clearedLevels) : 0;
-        const statLvl = document.getElementById('p-stat-level');
-        if (statLvl) statLvl.textContent = maxLevel;
-
-        profileModal.classList.add('active');
-      });
+      btnEditName.addEventListener('click', openProfileModalHandler);
+    }
+    if (btnMenuProfile && profileModal) {
+      btnMenuProfile.addEventListener('click', openProfileModalHandler);
     }
 
     if (btnSaveProfile && profileModal) {

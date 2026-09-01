@@ -71,7 +71,7 @@ const LeaderboardService = {
     let playersMap = {};
 
     try {
-      const res = await fetch(`${this.API_URL}.json?orderBy="maxLevel"&limitToLast=50`);
+      const res = await fetch(`${this.API_URL}.json?orderBy="maxLevel"&limitToLast=100`);
       if (res.ok) {
         playersMap = (await res.json()) || {};
       }
@@ -105,15 +105,22 @@ const LeaderboardService = {
       lastUpdated: playersMap[id].lastUpdated || 0
     })).sort((a, b) => {
       if (b.maxLevel !== a.maxLevel) return b.maxLevel - a.maxLevel;
-      return a.lastUpdated - b.lastUpdated; // Earlier level 100 solver wins rank 1!
+      return a.lastUpdated - b.lastUpdated; // Earlier completion wins tie!
     });
 
-    // Determine Hall of Fame winner (First player to clear Level 100)
+    // Milestone Category Winners
     const level100Winner = sorted.find(p => p.maxLevel >= 100);
+    const level250Winner = sorted.find(p => p.maxLevel >= 250);
+    const level500Winner = sorted.find(p => p.maxLevel >= 500);
+    const trainMasterWinner = sorted.find(p => p.totalCleared >= 50);
 
     return {
-      players: sorted,
+      players: sorted.slice(0, 100), // Cap at Top 100
+      allPlayersCount: sorted.length,
       level100Winner,
+      level250Winner,
+      level500Winner,
+      trainMasterWinner,
       currentPlayerId: playerId
     };
   }
