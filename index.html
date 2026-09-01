@@ -58,9 +58,129 @@
         </div>
         <div class="menu-actions">
           <button id="btn-play" class="btn btn-start-hero">START GAME ▶</button>
-          <button id="btn-settings" class="btn btn-secondary" style="margin-top: 12px;">⚙️ SETTINGS</button>
+          <div style="display: flex; gap: 10px; width: 100%; margin-top: 10px;">
+            <button id="btn-leaderboard" class="btn btn-secondary" style="flex: 1;">🏆 RANKS</button>
+            <button id="btn-achievements" class="btn btn-secondary" style="flex: 1;">🎖️ BADGES</button>
+          </div>
+          <button id="btn-settings" class="btn btn-secondary" style="margin-top: 10px;">⚙️ SETTINGS</button>
         </div>
         <div class="menu-footer">
+        </div>
+      </div>
+
+      <!-- ================= LEADERBOARD SCREEN ================= -->
+      <div id="leaderboard-screen" class="screen">
+        <div class="lb-header-bar">
+          <button id="btn-leaderboard-back" class="btn-clean-back">◀</button>
+          <h2 class="lb-header-title">LEADERBOARD</h2>
+          <button id="btn-edit-profile-name" class="btn-profile-edit">✏️ <span id="display-profile-name">Player</span></button>
+        </div>
+
+        <div class="leaderboard-container">
+          <!-- Hall of Fame Special Banner for First to Pass Level 100 -->
+          <div class="hall-of-fame-card">
+            <div class="hof-top-row">
+              <span class="hof-badge">👑 LEVEL 100 HALL OF FAME</span>
+            </div>
+            <div class="hof-player-row">
+              <div class="hof-icon-wrap">🥇</div>
+              <div class="hof-info">
+                <span class="hof-name" id="hof-winner-name">UNCLAIMED CROWN</span>
+                <span class="hof-sub" id="hof-winner-desc">Be the 1st player to clear Level 100!</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="leaderboard-scroll-area">
+            <div id="leaderboard-list" class="leaderboard-list">
+              <!-- Dynamically populated via JS -->
+            </div>
+          </div>
+
+          <div class="player-rank-card">
+            <div class="player-rank-info">
+              <span class="player-rank-label">YOUR RANK</span>
+              <span id="player-rank-val" class="player-rank-num">--</span>
+            </div>
+            <div class="player-rank-progress">
+              <span id="player-rank-desc">Play levels to climb the real global leaderboard!</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= ACHIEVEMENTS SCREEN ================= -->
+      <div id="achievements-screen" class="screen">
+        <div class="lb-header-bar">
+          <button id="btn-achievements-back" class="btn-clean-back">◀</button>
+          <h2 class="lb-header-title">ACHIEVEMENTS</h2>
+          <div style="width: 70px;"></div>
+        </div>
+
+        <div class="achievements-container">
+          <div class="achievements-scroll-area">
+            <div id="achievements-list" class="achievements-list">
+              <!-- Dynamically populated via JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= PLAYER PROFILE OVERLAY ================= -->
+      <div id="profile-overlay" class="overlay">
+        <div class="overlay-card profile-modal-card" style="max-width: 330px; padding: 24px 20px; border-radius: 28px; background: rgba(253, 251, 247, 0.98); backdrop-filter: blur(12px); box-shadow: 0 12px 36px rgba(0,0,0,0.2);">
+          <h2 class="overlay-title" style="margin-bottom: 4px; font-size: 1.4rem; color: #57534e;">PLAYER PROFILE</h2>
+          <p style="font-size: 0.8rem; color: #78716c; margin-bottom: 14px;">Customize your photo & name on live leaderboards!</p>
+
+          <!-- Avatar Preview & Upload -->
+          <div class="profile-avatar-section">
+            <div class="profile-avatar-preview" id="profile-avatar-preview-box">
+              <span id="profile-avatar-emoji">🦊</span>
+              <img id="profile-avatar-img" src="" alt="Avatar" style="display: none; width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
+            </div>
+            
+            <div class="avatar-actions" style="margin-top: 8px;">
+              <label for="input-avatar-file" class="btn btn-sm btn-secondary" style="cursor: pointer; font-weight: 700; font-size: 0.8rem; padding: 6px 14px; border-radius: 14px; display: inline-block;">
+                📷 UPLOAD PHOTO
+              </label>
+              <input type="file" id="input-avatar-file" accept="image/*" style="display: none;">
+            </div>
+
+            <!-- Avatar Emoji Presets -->
+            <div class="avatar-presets-row">
+              <span class="avatar-preset-item" data-emoji="🦊">🦊</span>
+              <span class="avatar-preset-item" data-emoji="🦁">🦁</span>
+              <span class="avatar-preset-item" data-emoji="🤖">🤖</span>
+              <span class="avatar-preset-item" data-emoji="👑">👑</span>
+              <span class="avatar-preset-item" data-emoji="🐉">🐉</span>
+              <span class="avatar-preset-item" data-emoji="🚀">🚀</span>
+              <span class="avatar-preset-item" data-emoji="🎯">🎯</span>
+              <span class="avatar-preset-item" data-emoji="⚡">⚡</span>
+            </div>
+          </div>
+
+          <!-- Gamer Tag Input -->
+          <div style="width: 100%; margin-top: 12px; text-align: left;">
+            <label style="font-size: 0.72rem; font-weight: 800; color: #78716c; letter-spacing: 0.5px; margin-bottom: 4px; display: block;">GAMER TAG</label>
+            <input type="text" id="input-profile-name" maxlength="16" placeholder="Enter Username..." style="width: 100%; padding: 10px 14px; border: 2px solid #e7dfd0; border-radius: 14px; font-size: 1rem; font-weight: 700; color: #444; outline: none; box-sizing: border-box;">
+          </div>
+
+          <!-- Career Stats Grid -->
+          <div class="profile-stats-grid">
+            <div class="p-stat-box">
+              <span class="p-stat-num" id="p-stat-level">0</span>
+              <span class="p-stat-lbl">MAX LEVEL</span>
+            </div>
+            <div class="p-stat-box">
+              <span class="p-stat-num" id="p-stat-rank">#--</span>
+              <span class="p-stat-lbl">GLOBAL RANK</span>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 10px; width: 100%; margin-top: 16px;">
+            <button id="btn-save-profile" class="btn btn-primary" style="flex: 1;">SAVE</button>
+            <button id="btn-close-profile-modal" class="btn btn-secondary" style="flex: 1;">CANCEL</button>
+          </div>
         </div>
       </div>
 
@@ -276,6 +396,7 @@
 
   <script src="src/js/levels.js?v=148"></script>
   <script src="src/js/game.js?v=148"></script>
+  <script src="src/js/leaderboard_service.js?v=148"></script>
   <script src="src/js/main.js?v=148"></script>
 </body>
 </html>

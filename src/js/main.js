@@ -97,7 +97,7 @@ const App = {
         this.showScreen('level-select-screen');
         this.renderLevelSelect();
         return "handled";
-      } else if (activeScreen === 'level-select-screen' || activeScreen === 'shop-screen') {
+      } else if (activeScreen === 'level-select-screen' || activeScreen === 'shop-screen' || activeScreen === 'leaderboard-screen' || activeScreen === 'achievements-screen') {
         this.showScreen('menu-screen');
         return "handled";
       } else if (activeScreen === 'menu-screen') {
@@ -166,12 +166,131 @@ const App = {
 
     if (screenId === 'menu-screen') {
       this.updateGlobalHUD();
+    } else if (screenId === 'leaderboard-screen') {
+      this.renderLeaderboard();
+    } else if (screenId === 'achievements-screen') {
+      this.renderAchievements();
     } else if (screenId === 'level-select-screen') {
       this.renderLevelSelect();
       // Ensure view lands dynamically at current level area under any scenario
       requestAnimationFrame(() => {
         this.scrollToCurrentLevel(false);
         setTimeout(() => this.scrollToCurrentLevel(true), 80);
+      });
+    }
+  },
+
+  async renderLeaderboard() {
+    this.loadProgress();
+    
+    // Update player profile tag on header
+    const profile = LeaderboardService.getPlayerProfile();
+    const tagEl = document.getElementById('display-profile-name');
+    if (tagEl) tagEl.textContent = profile.playerName;
+
+    // Sync current player progress to cloud
+    await LeaderboardService.syncProgress();
+
+    // Fetch live global leaderboard data
+    const data = await LeaderboardService.fetchGlobalLeaderboard();
+    const { players, level100Winner, currentPlayerId } = data;
+
+    // Update Hall of Fame card
+    const hofNameEl = document.getElementById('hof-winner-name');
+    const hofSubEl = document.getElementById('hof-winner-desc');
+    if (level100Winner && level100Winner.maxLevel >= 100) {
+      if (hofNameEl) hofNameEl.textContent = level100Winner.name;
+      if (hofSubEl) hofSubEl.textContent = `First solver to clear Level 100!`;
+    } else {
+      if (hofNameEl) hofNameEl.textContent = "👑 UNCLAIMED CROWN";
+      if (hofSubEl) hofSubEl.textContent = "Be the 1st solver to clear Level 100!";
+    }
+
+    // Render global leaderboard list
+    const listEl = document.getElementById('leaderboard-list');
+    if (listEl) {
+      listEl.innerHTML = '';
+      if (!players || players.length === 0) {
+        listEl.innerHTML = '<div style="text-align:center; padding: 20px; color:#78716c; font-weight:600;">Play levels to appear on the live leaderboard!</div>';
+      } else {
+        players.forEach((item, index) => {
+          const rank = index + 1;
+          const isMe = item.id === currentPlayerId;
+          const div = document.createElement('div');
+          div.className = `leaderboard-item ${rank <= 3 ? 'top-three' : ''} ${isMe ? 'lb-item-me' : ''}`;
+          const tagText = item.maxLevel >= 100 ? '👑 Hall of Fame Champion' : rank === 1 ? '🥇 #1 Master Solver' : rank === 2 ? '🥈 #2 Expert Solver' : rank === 3 ? '🥉 #3 Pro Solver' : `Rank #${rank} Solver`;
+          const avatarHtml = (item.avatar && item.avatar.startsWith('data:image'))
+            ? `<img src="${item.avatar}" style="width:28px; height:28px; border-radius:50%; object-fit:cover; margin-right:6px; vertical-align:middle;">`
+            : `<span style="font-size:1.2rem; margin-right:6px; vertical-align:middle;">${item.avatar || '🦊'}</span>`;
+
+          div.innerHTML = `
+            <span class="lb-rank">${rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '#' + rank}</span>
+            <div class="lb-info">
+              <span class="lb-name" style="${isMe ? 'color:#ab364f; font-weight:800;' : ''}">${avatarHtml}${item.name} ${isMe ? '(YOU)' : ''}</span>
+              <span class="lb-detail">${tagText}</span>
+            </div>
+            <span class="lb-level">Lvl ${item.maxLevel}</span>
+          `;
+          listEl.appendChild(div);
+        });
+      }
+    }
+
+    // Update Player Rank Card
+    const playerRankVal = document.getElementById('player-rank-val');
+    const playerRankDesc = document.getElementById('player-rank-desc');
+    const myIndex = players.findIndex(p => p.id === currentPlayerId);
+    const myRank = myIndex !== -1 ? myIndex + 1 : '--';
+    const myMaxLevel = this.clearedLevels.length > 0 ? Math.max(...this.clearedLevels) : 0;
+
+    if (playerRankVal) {
+      playerRankVal.textContent = `#${myRank}`;
+    }
+    if (playerRankDesc) {
+      if (myMaxLevel >= 100) {
+        playerRankDesc.textContent = "🎉 You cleared Level 100 & claimed Hall of Fame!";
+      } else {
+        const remaining = 100 - myMaxLevel;
+        playerRankDesc.textContent = `Level ${myMaxLevel} Cleared • ${remaining} levels to Level 100 Crown!`;
+      }
+    }
+  },
+
+  renderAchievements() {
+    this.loadProgress();
+    const maxCleared = this.clearedLevels.length > 0 ? Math.max(...this.clearedLevels) : 0;
+    const totalCleared = this.clearedLevels.length;
+
+    const achievements = [
+      { id: 'first_step', icon: '🐣', title: 'First Clearance', desc: 'Clear your first puzzle level', current: Math.min(1, totalCleared), target: 1 },
+      { id: 'level_10', icon: '🎯', title: 'Logic Explorer', desc: 'Reach & Clear Level 10', current: Math.min(10, maxCleared), target: 10 },
+      { id: 'level_25', icon: '🏹', title: 'Polyline Pathfinder', desc: 'Reach & Clear Level 25', current: Math.min(25, maxCleared), target: 25 },
+      { id: 'level_50', icon: '⚡', title: 'Puzzle Mastermind', desc: 'Reach & Clear Level 50', current: Math.min(50, maxCleared), target: 50 },
+      { id: 'level_100', icon: '👑', title: 'Level 100 Legend', desc: 'Reach Level 100 & Claim Hall of Fame!', current: Math.min(100, maxCleared), target: 100 },
+      { id: 'train_dodger', icon: '🚂', title: 'Train Dodger', desc: 'Successfully clear 10 Train Dodge sectors', current: Math.min(10, Math.floor(totalCleared * 0.25)), target: 10 },
+      { id: 'maze_runner', icon: '🌀', title: 'Maze Sector Navigator', desc: 'Successfully escape 20 Maze sectors', current: Math.min(20, Math.floor(totalCleared * 0.5)), target: 20 }
+    ];
+
+    const listEl = document.getElementById('achievements-list');
+    if (listEl) {
+      listEl.innerHTML = '';
+      achievements.forEach(ach => {
+        const isUnlocked = ach.current >= ach.target;
+        const pct = Math.min(100, Math.round((ach.current / ach.target) * 100));
+        const card = document.createElement('div');
+        card.className = `achievement-card ${isUnlocked ? 'unlocked' : ''}`;
+        card.innerHTML = `
+          <span class="ach-icon">${ach.icon}</span>
+          <div class="ach-info">
+            <span class="ach-title">${ach.title}</span>
+            <span class="ach-desc">${ach.desc}</span>
+            <div class="ach-progress-bar">
+              <div class="ach-progress-fill" style="width: ${pct}%;"></div>
+            </div>
+          </div>
+          <span class="ach-status">${isUnlocked ? 'UNLOCKED ✓' : `${ach.current}/${ach.target}`}</span>
+        `;
+        listEl.appendChild(card);
       });
     }
   },
@@ -217,6 +336,105 @@ const App = {
   bindEvents() {
     document.getElementById('btn-play').addEventListener('click', () => this.showScreen('level-select-screen'));
     document.getElementById('btn-level-back').addEventListener('click', () => this.showScreen('menu-screen'));
+
+    const btnLb = document.getElementById('btn-leaderboard');
+    if (btnLb) btnLb.addEventListener('click', () => this.showScreen('leaderboard-screen'));
+
+    const btnAch = document.getElementById('btn-achievements');
+    if (btnAch) btnAch.addEventListener('click', () => this.showScreen('achievements-screen'));
+
+    const btnLbBack = document.getElementById('btn-leaderboard-back');
+    if (btnLbBack) btnLbBack.addEventListener('click', () => this.showScreen('menu-screen'));
+
+    const btnAchBack = document.getElementById('btn-achievements-back');
+    if (btnAchBack) btnAchBack.addEventListener('click', () => this.showScreen('menu-screen'));
+
+    // Gamer Profile modal listeners
+    const btnEditName = document.getElementById('btn-edit-profile-name');
+    const profileModal = document.getElementById('profile-overlay');
+    const btnSaveProfile = document.getElementById('btn-save-profile');
+    const btnCloseProfile = document.getElementById('btn-close-profile-modal');
+    const inputProfileName = document.getElementById('input-profile-name');
+    const inputAvatarFile = document.getElementById('input-avatar-file');
+    const emojiSpan = document.getElementById('profile-avatar-emoji');
+    const imgEl = document.getElementById('profile-avatar-img');
+
+    let selectedAvatar = '🦊';
+
+    const updateAvatarPreview = (avatar) => {
+      selectedAvatar = avatar;
+      if (avatar && avatar.startsWith('data:image')) {
+        if (imgEl) {
+          imgEl.src = avatar;
+          imgEl.style.display = 'block';
+        }
+        if (emojiSpan) emojiSpan.style.display = 'none';
+      } else {
+        if (imgEl) imgEl.style.display = 'none';
+        if (emojiSpan) {
+          emojiSpan.textContent = avatar || '🦊';
+          emojiSpan.style.display = 'block';
+        }
+      }
+    };
+
+    // Preset emoji clicks
+    document.querySelectorAll('.avatar-preset-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        SoundSystem.playSelect();
+        document.querySelectorAll('.avatar-preset-item').forEach(i => i.classList.remove('selected'));
+        e.target.classList.add('selected');
+        updateAvatarPreview(e.target.getAttribute('data-emoji'));
+      });
+    });
+
+    // Custom image upload listener
+    if (inputAvatarFile) {
+      inputAvatarFile.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            updateAvatarPreview(event.target.result);
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+    }
+
+    if (btnEditName && profileModal) {
+      btnEditName.addEventListener('click', () => {
+        SoundSystem.playSelect();
+        const profile = LeaderboardService.getPlayerProfile();
+        if (inputProfileName) inputProfileName.value = profile.playerName;
+        updateAvatarPreview(profile.avatar);
+
+        // Update stats
+        const maxLevel = this.clearedLevels.length > 0 ? Math.max(...this.clearedLevels) : 0;
+        const statLvl = document.getElementById('p-stat-level');
+        if (statLvl) statLvl.textContent = maxLevel;
+
+        profileModal.classList.add('active');
+      });
+    }
+
+    if (btnSaveProfile && profileModal) {
+      btnSaveProfile.addEventListener('click', () => {
+        SoundSystem.playSelect();
+        if (inputProfileName && inputProfileName.value.trim()) {
+          LeaderboardService.setPlayerProfile(inputProfileName.value.trim(), selectedAvatar);
+          profileModal.classList.remove('active');
+          this.renderLeaderboard();
+        }
+      });
+    }
+
+    if (btnCloseProfile && profileModal) {
+      btnCloseProfile.addEventListener('click', () => {
+        SoundSystem.playSelect();
+        profileModal.classList.remove('active');
+      });
+    }
 
     // Floating Action Button (FAB) listener
     const fabBtn = document.getElementById('fab-current-level');

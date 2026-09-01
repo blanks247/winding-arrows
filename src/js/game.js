@@ -1476,6 +1476,10 @@ const ArrowGame = {
       localStorage.setItem('winding_cleared_levels', JSON.stringify(cleared));
     }
 
+    if (typeof LeaderboardService !== 'undefined' && LeaderboardService.syncProgress) {
+      LeaderboardService.syncProgress(this.level.id);
+    }
+
     SoundSystem.playWin();
     this.triggerVictoryConfetti();
     document.getElementById('victory-overlay').classList.add('active');
