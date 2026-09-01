@@ -1433,33 +1433,11 @@ const ArrowGame = {
     });
     this.particles = this.particles.filter(pt => pt.alpha > 0);
 
-    // 2. Victory & Deadlock evaluation
+    // 2. Victory evaluation
     const allCleared = this.arrows.every(a => a.status === 'ESCAPED');
     if (allCleared && this.arrows.length > 0) {
       this.active = false;
       setTimeout(() => this.showVictoryScreen(), 500);
-    } else {
-      // If all active arrows are IDLE, check for deadlock
-      const anyMoving = this.arrows.some(a => a.status === 'ESCAPING' || a.status === 'REBOUNDING' || a.status === 'COLLIDED');
-      if (!anyMoving) {
-        const idleArrows = this.arrows.filter(a => a.status === 'IDLE');
-        if (idleArrows.length > 0) {
-          let hasValidMove = false;
-          for (const a of idleArrows) {
-            if (!this.checkPolylineCollision(a, this.arrows)) {
-              hasValidMove = true;
-              break;
-            }
-          }
-          if (!hasValidMove) {
-            this.active = false;
-            setTimeout(() => {
-              document.getElementById('deadlock-overlay').classList.add('active');
-              SoundSystem.playBuzzer();
-            }, 600);
-          }
-        }
-      }
     }
   },
 
@@ -1486,6 +1464,28 @@ const ArrowGame = {
     SoundSystem.playWin();
     this.triggerVictoryConfetti();
     document.getElementById('victory-overlay').classList.add('active');
+  },
+
+  reviveFromGameOver() {
+    this.hearts = 1;
+    this.updateHUD();
+    this.active = true;
+
+    // Close gameover overlay
+    const gameoverOverlay = document.getElementById('gameover-overlay');
+    if (gameoverOverlay) gameoverOverlay.classList.remove('active');
+
+    // Reset status of any non-escaped arrow back to clean IDLE state so puzzle is 100% solvable!
+    this.arrows.forEach(a => {
+      if (a.status !== 'ESCAPED') {
+        a.status = 'IDLE';
+        a.currentSpeed = 0;
+        a.progress = 0;
+        a.checkedCart = false;
+      }
+    });
+
+    SoundSystem.playWin();
   },
 
   triggerVictoryConfetti() {

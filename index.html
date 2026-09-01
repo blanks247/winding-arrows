@@ -289,14 +289,35 @@
       
       <!-- ================= GAME OVER OVERLAY ================= -->
       <div id="gameover-overlay" class="overlay">
-        <div class="overlay-card">
-          <div class="success-icon" style="color: #ab364f;">💔</div>
-          <h2 class="overlay-title">GAME OVER</h2>
-          <p class="overlay-subtitle">All lives lost. Better luck next time.</p>
-          <div class="overlay-actions">
-            <button id="btn-retry-level" class="btn btn-primary">Try Again</button>
-            <button id="btn-gameover-menu" class="btn btn-danger">Exit</button>
+        <div class="overlay-card revive-gameover-card">
+          <div class="revive-heart-badge">
+            <span class="revive-heart-icon">❤️</span>
+            <span class="revive-plus-tag">+1</span>
           </div>
+          <h2 class="overlay-title" style="color: #443d33; margin-top: 10px;">GAME OVER</h2>
+          <p class="overlay-subtitle" style="margin-bottom: 20px;">Watch a short video to get 1 Extra Life & continue!</p>
+          
+          <div class="overlay-actions" style="display: flex; flex-direction: column; gap: 12px; width: 100%;">
+            <button id="btn-gameover-ad-revive" class="btn-revive-hero">
+              <span class="revive-btn-icon">🎬</span>
+              <span class="revive-btn-text">CONTINUE (+1 ❤️)</span>
+            </button>
+
+            <div style="display: flex; gap: 10px; width: 100%;">
+              <button id="btn-retry-level" class="btn btn-secondary" style="flex: 1;">↺ RETRY</button>
+              <button id="btn-gameover-menu" class="btn btn-danger" style="flex: 1;">🚪 EXIT</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= AD LOADING SPINNER OVERLAY ================= -->
+      <div id="ad-loading-overlay" class="overlay">
+        <div class="overlay-card ad-loading-card" style="max-width: 280px; padding: 28px 20px; border-radius: 24px; background: rgba(253, 251, 247, 0.98); backdrop-filter: blur(14px); display: flex; flex-direction: column; align-items: center; text-align: center; box-shadow: 0 12px 36px rgba(0,0,0,0.25);">
+          <div class="ad-spinner-ring"></div>
+          <span style="font-size: 1.8rem; margin-top: -46px; margin-bottom: 20px;">🎬</span>
+          <h2 style="font-size: 1.15rem; font-weight: 800; color: #443d33; margin-bottom: 4px; letter-spacing: 0.5px;">LOADING AD...</h2>
+          <p style="font-size: 0.78rem; color: #78716c; font-weight: 600; margin: 0;">Preparing video reward for you...</p>
         </div>
       </div>
 

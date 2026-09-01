@@ -9,19 +9,39 @@ const AdMobService = {
   },
 
   isInitialized: false,
+  isAdPreloaded: false,
 
   async init() {
     if (this.isInitialized) return;
-    if (window.Capacitor && window.Capacitor.isPluginAvailable('AdMob')) {
+    const isNativeCapacitor = window.Capacitor && window.Capacitor.isNativePlatform();
+    const AdMob = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob;
+
+    if (isNativeCapacitor && AdMob) {
       try {
-        const { AdMob } = window.Capacitor.Plugins;
         await AdMob.initialize({
           testingDevices: [],
           initializeForTesting: true
         });
         this.isInitialized = true;
+        this.preloadRewardedAd();
       } catch (e) {
         console.warn('AdMob initialization warning:', e);
+      }
+    }
+  },
+
+  async preloadRewardedAd() {
+    const isNativeCapacitor = window.Capacitor && window.Capacitor.isNativePlatform();
+    const AdMob = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob;
+    if (isNativeCapacitor && AdMob && !this.isAdPreloaded) {
+      try {
+        await AdMob.prepareRewardVideoAd({
+          adId: this.TEST_AD_UNITS.rewarded,
+          isTesting: true
+        });
+        this.isAdPreloaded = true;
+      } catch (e) {
+        console.warn('Preload ad warning:', e);
       }
     }
   },
@@ -30,43 +50,62 @@ const AdMobService = {
     const isNativeCapacitor = window.Capacitor && window.Capacitor.isNativePlatform();
     const AdMob = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob;
 
+    const adLoadingOverlay = document.getElementById('ad-loading-overlay');
+    if (adLoadingOverlay) adLoadingOverlay.classList.add('active');
+
+    const hideSpinner = () => {
+      if (adLoadingOverlay) adLoadingOverlay.classList.remove('active');
+    };
+
     if (isNativeCapacitor && AdMob) {
       try {
         await this.init();
 
         let rewardedItem = false;
         
-        // Add event listeners for rewarded video completion
+        // Listeners for rewarded video completion & dismissal
         const rewardListener = await AdMob.addListener('onRewardVideoAdReward', () => {
           rewardedItem = true;
         });
 
         const dismissListener = await AdMob.addListener('onRewardVideoAdDismissed', () => {
+          hideSpinner();
+          this.isAdPreloaded = false;
           if (rewardedItem && typeof onRewardCallback === 'function') {
-            onRewardCallback();
+            setTimeout(() => onRewardCallback(), 100);
           }
           if (rewardListener && rewardListener.remove) rewardListener.remove();
           if (dismissListener && dismissListener.remove) dismissListener.remove();
+
+          // Immediately preload next ad in background!
+          setTimeout(() => this.preloadRewardedAd(), 1000);
         });
 
-        await AdMob.prepareRewardVideoAd({
-          adId: this.TEST_AD_UNITS.rewarded,
-          isTesting: true
-        });
+        if (!this.isAdPreloaded) {
+          await AdMob.prepareRewardVideoAd({
+            adId: this.TEST_AD_UNITS.rewarded,
+            isTesting: true
+          });
+        }
 
+        hideSpinner();
         await AdMob.showRewardVideoAd();
       } catch (e) {
         console.warn('Native AdMob error:', e);
+        hideSpinner();
         if (typeof onRewardCallback === 'function') {
           onRewardCallback();
         }
       }
     } else {
       // Web / Browser test notification
-      alert('🎥 [Test Ad] Watching Rewarded Video Ad...\n\nReward Granted: +1 Free Hint! 💡');
-      if (typeof onRewardCallback === 'function') {
-        onRewardCallback();
-      }
+      setTimeout(() => {
+        hideSpinner();
+        alert('🎥 [Test Ad] Watching Rewarded Video Ad...\n\nReward Granted! 💡');
+        if (typeof onRewardCallback === 'function') {
+          onRewardCallback();
+        }
+      }, 800);
     }
   }
 };

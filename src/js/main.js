@@ -687,6 +687,20 @@ const AdMobManager = {
     });
 
     // Game Over overlays
+    const btnGameoverAdRevive = document.getElementById('btn-gameover-ad-revive');
+    if (btnGameoverAdRevive) {
+      btnGameoverAdRevive.addEventListener('click', () => {
+        SoundSystem.playSelect();
+        if (typeof AdMobService !== 'undefined' && AdMobService.showRewardedAd) {
+          AdMobService.showRewardedAd(() => {
+            ArrowGame.reviveFromGameOver();
+          });
+        } else {
+          ArrowGame.reviveFromGameOver();
+        }
+      });
+    }
+
     document.getElementById('btn-retry-level').addEventListener('click', () => {
       SoundSystem.playSelect();
       document.getElementById('gameover-overlay').classList.remove('active');
