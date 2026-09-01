@@ -27,22 +27,26 @@ const AdMobService = {
   },
 
   async showRewardedAd(onRewardCallback) {
-    if (window.Capacitor && window.Capacitor.isPluginAvailable('AdMob')) {
-      const { AdMob, RewardAdPluginEvents } = window.Capacitor.Plugins;
+    const isNativeCapacitor = window.Capacitor && window.Capacitor.isNativePlatform();
+    const AdMob = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob;
+
+    if (isNativeCapacitor && AdMob) {
       try {
         await this.init();
 
         let rewardedItem = false;
-        const rewardListener = await AdMob.addListener(RewardAdPluginEvents.Rewarded, (reward) => {
+        
+        // Add event listeners for rewarded video completion
+        const rewardListener = await AdMob.addListener('onRewardVideoAdReward', () => {
           rewardedItem = true;
         });
 
-        const dismissListener = await AdMob.addListener(RewardAdPluginEvents.Dismissed, () => {
+        const dismissListener = await AdMob.addListener('onRewardVideoAdDismissed', () => {
           if (rewardedItem && typeof onRewardCallback === 'function') {
             onRewardCallback();
           }
-          rewardListener.remove();
-          dismissListener.remove();
+          if (rewardListener && rewardListener.remove) rewardListener.remove();
+          if (dismissListener && dismissListener.remove) dismissListener.remove();
         });
 
         await AdMob.prepareRewardVideoAd({
@@ -52,14 +56,13 @@ const AdMobService = {
 
         await AdMob.showRewardVideoAd();
       } catch (e) {
-        console.warn('Error displaying Rewarded Ad, granting fallback reward:', e);
-        // Fallback for web / local testing
+        console.warn('Native AdMob error:', e);
         if (typeof onRewardCallback === 'function') {
           onRewardCallback();
         }
       }
     } else {
-      // Local dev server fallback test notification
+      // Web / Browser test notification
       alert('🎥 [Test Ad] Watching Rewarded Video Ad...\n\nReward Granted: +1 Free Hint! 💡');
       if (typeof onRewardCallback === 'function') {
         onRewardCallback();
