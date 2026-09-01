@@ -608,9 +608,13 @@ const AdMobManager = {
     // Game Inputs
     document.getElementById('btn-undo').addEventListener('click', () => ArrowGame.undoMove());
     document.getElementById('btn-hint').addEventListener('click', () => {
-      AdMobManager.showRewardedAdForHint(() => {
+      if (typeof AdMobService !== 'undefined' && AdMobService.showRewardedAd) {
+        AdMobService.showRewardedAd(() => {
+          ArrowGame.triggerHint();
+        });
+      } else {
         ArrowGame.triggerHint();
-      });
+      }
     });
 
     // Restart level direct button
