@@ -37,16 +37,13 @@ jobs:
           cd android
           chmod +x gradlew
 
-      - name: Check or Generate Permanent Release Keystore
+      - name: Verify Permanent Release Keystore Exists
         run: |
           if [ ! -f release.keystore ]; then
-            keytool -genkey -v -keystore release.keystore -alias windingkey -keyalg RSA -keysize 2048 -validity 10000 -storepass windingpassword -keypass windingpassword -dname "CN=WindingArrows, OU=Games, O=WindingArrows, L=City, ST=State, C=US"
-            git config --global user.name "github-actions[bot]"
-            git config --global user.email "github-actions[bot]@users.noreply.github.com"
-            git add release.keystore
-            git commit -m "Commit Permanent Release Keystore File" || true
-            git push origin main || true
+            echo "ERROR: release.keystore is missing from the repository!"
+            exit 1
           fi
+          echo "✅ Keystore found. Using committed permanent keystore."
 
       - name: Build Android APK (Testing)
         run: |
