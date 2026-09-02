@@ -2,7 +2,7 @@
 
 const LeaderboardService = {
   // Public Firebase Realtime Database / REST endpoint for live global leaderboard
-  API_URL: 'https://winding-arrows-default-rtdb.firebaseio.com/leaderboard',
+  API_URL: 'https://winding-arrows-default-rtdb.asia-southeast1.firebasedatabase.app/leaderboard',
 
   getPlayerProfile() {
     let playerId = localStorage.getItem('winding_player_uuid');
@@ -71,7 +71,8 @@ const LeaderboardService = {
     let playersMap = {};
 
     try {
-      const res = await fetch(`${this.API_URL}.json?orderBy="maxLevel"&limitToLast=100`);
+      // Fetch all players without indexing rules to prevent 400 errors
+      const res = await fetch(`${this.API_URL}.json`);
       if (res.ok) {
         playersMap = (await res.json()) || {};
       }
