@@ -24,6 +24,7 @@ const AdMobService = {
         });
         this.isInitialized = true;
         this.preloadRewardedAd();
+        this.showBanner(); // <--- Requirement 2: Show banner ad at bottom globally
       } catch (e) {
         console.warn('AdMob initialization warning:', e);
       }
@@ -46,7 +47,30 @@ const AdMobService = {
     }
   },
 
+  async showBanner() {
+    const isNativeCapacitor = window.Capacitor && window.Capacitor.isNativePlatform();
+    const AdMob = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob;
+    
+    if (isNativeCapacitor && AdMob) {
+      try {
+        await AdMob.showBanner({
+          adId: this.TEST_AD_UNITS.banner,
+          position: 'BOTTOM_CENTER',
+          margin: 0,
+          isTesting: true
+        });
+      } catch (e) {
+        console.warn('Banner ad error:', e);
+      }
+    }
+  },
+
   async showRewardedAd(onRewardCallback) {
+    if (!navigator.onLine) {
+      alert('⚠️ No internet connection.\nPlease turn on your Wi-Fi or mobile data to watch ads and earn rewards.');
+      return;
+    }
+
     const isNativeCapacitor = window.Capacitor && window.Capacitor.isNativePlatform();
     const AdMob = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob;
 
@@ -71,9 +95,14 @@ const AdMobService = {
         const dismissListener = await AdMob.addListener('onRewardVideoAdDismissed', () => {
           hideSpinner();
           this.isAdPreloaded = false;
+          // Requirement 3: Only give reward if 'onRewardVideoAdReward' fired (user watched whole ad)
           if (rewardedItem && typeof onRewardCallback === 'function') {
             setTimeout(() => onRewardCallback(), 100);
+          } else if (!rewardedItem) {
+            // User closed ad early!
+            console.log('Ad closed early, no reward given.');
           }
+
           if (rewardListener && rewardListener.remove) rewardListener.remove();
           if (dismissListener && dismissListener.remove) dismissListener.remove();
 
@@ -93,9 +122,8 @@ const AdMobService = {
       } catch (e) {
         console.warn('Native AdMob error:', e);
         hideSpinner();
-        if (typeof onRewardCallback === 'function') {
-          onRewardCallback();
-        }
+        alert('Failed to load video ad. Please check your internet connection and try again.');
+        // DANGER REMOVED: We no longer grant a free reward here on failure!
       }
     } else {
       // Web / Browser test notification
