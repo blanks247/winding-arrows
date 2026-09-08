@@ -154,7 +154,7 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  padding: 16px 16px 16px 16px;
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom, 0px)) 16px;
   display: flex;
   flex-direction: column;
   opacity: 0;
@@ -831,12 +831,13 @@ body {
   background: rgba(247, 245, 237, 0.95);
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
+  overflow-y: auto;
   opacity: 0;
   pointer-events: none;
   transition: opacity var(--transition-normal);
   z-index: 100;
-  padding: 30px;
+  padding: 20px;
 }
 
 .overlay.active {
@@ -853,6 +854,8 @@ body {
   max-width: 320px;
   text-align: center;
   box-shadow: 0 15px 35px rgba(104, 92, 76, 0.08);
+  margin: auto;
+  flex-shrink: 0;
 }
 
 .overlay-title {
@@ -932,7 +935,7 @@ body {
     display: none;
   }
   .screen {
-    padding: 16px 12px 12px 12px;
+    padding: 16px 12px calc(12px + env(safe-area-inset-bottom, 0px)) 12px;
   }
 }
 
@@ -1413,6 +1416,8 @@ body {
   align-items: center;
   justify-content: space-between;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  margin-top: 8px;
+  margin-bottom: calc(12px + env(safe-area-inset-bottom, 12px));
 }
 
 .player-rank-info {
