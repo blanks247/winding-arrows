@@ -231,8 +231,18 @@ const App = {
     const listEl = document.getElementById('leaderboard-list');
     if (listEl) {
       listEl.innerHTML = '';
+      if (!navigator.onLine) {
+        listEl.innerHTML = `
+          <div style="text-align:center; padding: 16px; color:#78716c; font-weight:600; background: #fff1f2; border-radius: 16px; margin-bottom: 16px; border: 2px dashed #fecdd3;">
+            <div style="font-size: 2.2rem; margin-bottom: 6px;">📡</div>
+            <div style="color: #e11d48; font-size: 1.1rem; font-weight: 800; margin-bottom: 4px;">NO INTERNET</div>
+            <div style="font-size: 0.85rem; color: #be123c;">Connect to see live Global Rankings! Showing local data.</div>
+          </div>
+        `;
+      }
+
       if (!players || players.length === 0) {
-        listEl.innerHTML = '<div style="text-align:center; padding: 20px; color:#78716c; font-weight:600;">Play levels to appear on the live leaderboard!</div>';
+        listEl.innerHTML += '<div style="text-align:center; padding: 20px; color:#78716c; font-weight:600;">Play levels to appear on the live leaderboard!</div>';
       } else {
         players.forEach((item, index) => {
           const rank = index + 1;
