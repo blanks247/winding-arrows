@@ -24,7 +24,6 @@ const AdMobService = {
         });
         this.isInitialized = true;
         this.preloadRewardedAd();
-        this.showBanner();
       } catch (e) {
         console.warn('AdMob initialization warning:', e);
       }
@@ -65,6 +64,19 @@ const AdMobService = {
     }
   },
 
+  async hideBanner() {
+    const isNativeCapacitor = window.Capacitor && window.Capacitor.isNativePlatform();
+    const AdMob = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob;
+    
+    if (isNativeCapacitor && AdMob) {
+      try {
+        await AdMob.hideBanner();
+      } catch (e) {
+        console.warn('Hide banner error:', e);
+      }
+    }
+  },
+
   async showRewardedAd(onRewardCallback) {
     if (!navigator.onLine) {
       alert('⚠️ No internet connection.\nPlease turn on your Wi-Fi or mobile data to watch ads and earn rewards.');
@@ -85,18 +97,23 @@ const AdMobService = {
       try {
         await this.init();
 
+        let rewardedItem = false;
+        
         // Listeners for rewarded video completion & dismissal
         const rewardListener = await AdMob.addListener('onRewardVideoAdReward', () => {
-          if (typeof onRewardCallback === 'function') {
-            onRewardCallback();
-            onRewardCallback = null; // Prevent double firing
-          }
+          rewardedItem = true;
         });
 
         const dismissListener = await AdMob.addListener('onRewardVideoAdDismissed', () => {
           hideSpinner();
           this.isAdPreloaded = false;
           
+          if (rewardedItem && typeof onRewardCallback === 'function') {
+            setTimeout(() => onRewardCallback(), 100);
+          } else if (!rewardedItem) {
+            console.log('Ad closed early, no reward given.');
+          }
+
           if (rewardListener && rewardListener.remove) rewardListener.remove();
           if (dismissListener && dismissListener.remove) dismissListener.remove();
 
@@ -117,13 +134,12 @@ const AdMobService = {
         console.warn('Native AdMob error:', e);
         hideSpinner();
         alert('No ad available right now. Please try again later.');
-        // DANGER REMOVED: We no longer grant a free reward here on failure!
       }
     } else {
       // Web / Browser test notification
       setTimeout(() => {
         hideSpinner();
-        alert('🎥 [Test Ad] Watching Rewarded Video Ad...\n\nReward Granted! 💡');
+        alert('🎥 [Test Ad] Watching Rewarded Video Ad...\n\nReward Granted! 🎁');
         if (typeof onRewardCallback === 'function') {
           onRewardCallback();
         }

@@ -168,6 +168,15 @@ const App = {
     if (target) {
       target.classList.add('active');
       this.activeScreen = screenId;
+      
+      // Manage banner ad visibility automatically based on active screen
+      if (typeof AdMobService !== 'undefined') {
+        if (screenId === 'gameplay-screen') {
+          if (AdMobService.showBanner) AdMobService.showBanner();
+        } else {
+          if (AdMobService.hideBanner) AdMobService.hideBanner();
+        }
+      }
     }
 
     if (screenId === 'menu-screen') {
