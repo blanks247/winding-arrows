@@ -1,11 +1,11 @@
-// Winding Arrows - Google AdMob Service (Official Test Ad Units)
+// Winding Arrows - Google AdMob Service
 
 const AdMobService = {
-  // Official Google AdMob Test Ad Unit IDs
-  TEST_AD_UNITS: {
-    rewarded: 'ca-app-pub-3940256099942544/5224354917',
-    interstitial: 'ca-app-pub-3940256099942544/1033173712',
-    banner: 'ca-app-pub-3940256099942544/6300978111'
+  // Official Live Ad Unit IDs
+  AD_UNITS: {
+    rewarded: 'ca-app-pub-3273633685340729/6644140798',
+    interstitial: 'ca-app-pub-3940256099942544/1033173712', // Fallback test ID
+    banner: 'ca-app-pub-3273633685340729/8012073104'
   },
 
   isInitialized: false,
@@ -20,11 +20,11 @@ const AdMobService = {
       try {
         await AdMob.initialize({
           testingDevices: [],
-          initializeForTesting: true
+          initializeForTesting: false
         });
         this.isInitialized = true;
         this.preloadRewardedAd();
-        this.showBanner(); // <--- Requirement 2: Show banner ad at bottom globally
+        this.showBanner();
       } catch (e) {
         console.warn('AdMob initialization warning:', e);
       }
@@ -37,8 +37,8 @@ const AdMobService = {
     if (isNativeCapacitor && AdMob && !this.isAdPreloaded) {
       try {
         await AdMob.prepareRewardVideoAd({
-          adId: this.TEST_AD_UNITS.rewarded,
-          isTesting: true
+          adId: this.AD_UNITS.rewarded,
+          isTesting: false
         });
         this.isAdPreloaded = true;
       } catch (e) {
@@ -54,10 +54,10 @@ const AdMobService = {
     if (isNativeCapacitor && AdMob) {
       try {
         await AdMob.showBanner({
-          adId: this.TEST_AD_UNITS.banner,
+          adId: this.AD_UNITS.banner,
           position: 'BOTTOM_CENTER',
           margin: 0,
-          isTesting: true
+          isTesting: false
         });
       } catch (e) {
         console.warn('Banner ad error:', e);
@@ -112,8 +112,8 @@ const AdMobService = {
 
         if (!this.isAdPreloaded) {
           await AdMob.prepareRewardVideoAd({
-            adId: this.TEST_AD_UNITS.rewarded,
-            isTesting: true
+            adId: this.AD_UNITS.rewarded,
+            isTesting: false
           });
         }
 
