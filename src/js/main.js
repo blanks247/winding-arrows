@@ -16,6 +16,9 @@ const App = {
     if (typeof LeaderboardService !== 'undefined' && LeaderboardService.syncProgress) {
       LeaderboardService.syncProgress();
     }
+    if (typeof AdMobService !== 'undefined' && AdMobService.init) {
+      AdMobService.init();
+    }
     this.bindEvents();
     this.renderLevelSelect();
 
@@ -509,6 +512,15 @@ const App = {
     const emojiSpan = document.getElementById('profile-avatar-emoji');
     const imgEl = document.getElementById('profile-avatar-img');
 
+    // Fix keyboard covering profile input
+    if (inputProfileName) {
+      inputProfileName.addEventListener('focus', function() {
+        setTimeout(() => {
+          this.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 300);
+      });
+    }
+
     let selectedAvatar = '🦊';
 
     const updateAvatarPreview = (avatar) => {
@@ -775,10 +787,19 @@ const AdMobManager = {
     document.getElementById('btn-hint').addEventListener('click', () => {
       if (typeof AdMobService !== 'undefined' && AdMobService.showRewardedAd) {
         AdMobService.showRewardedAd(() => {
-          ArrowGame.triggerHint();
+          // Verify user didn't hit back button while ad was loading
+          if (!document.getElementById('game-view').classList.contains('active')) return;
+          
+          ArrowGame.triggerHint(); // Hint 1
+          setTimeout(() => {
+            if (document.getElementById('game-view').classList.contains('active')) {
+              ArrowGame.triggerHint(); // Hint 2
+            }
+          }, 400);
         });
       } else {
         ArrowGame.triggerHint();
+        setTimeout(() => ArrowGame.triggerHint(), 400);
       }
     });
 
@@ -858,6 +879,7 @@ const AdMobManager = {
         SoundSystem.playSelect();
         if (typeof AdMobService !== 'undefined' && AdMobService.showRewardedAd) {
           AdMobService.showRewardedAd(() => {
+            if (!document.getElementById('game-view').classList.contains('active')) return;
             ArrowGame.reviveFromGameOver();
           });
         } else {

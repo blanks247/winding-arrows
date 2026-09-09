@@ -122,7 +122,7 @@ const AdMobService = {
       } catch (e) {
         console.warn('Native AdMob error:', e);
         hideSpinner();
-        alert('Failed to load video ad. Please check your internet connection and try again.');
+        alert('No ad available right now. Please try again later.');
         // DANGER REMOVED: We no longer grant a free reward here on failure!
       }
     } else {
