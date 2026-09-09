@@ -47,6 +47,8 @@ const AdMobService = {
   },
 
   async showBanner() {
+    if (!navigator.onLine) return;
+    
     const isNativeCapacitor = window.Capacitor && window.Capacitor.isNativePlatform();
     const AdMob = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob;
     
@@ -54,12 +56,15 @@ const AdMobService = {
       try {
         await AdMob.showBanner({
           adId: this.AD_UNITS.banner,
+          adSize: 'BANNER',
           position: 'BOTTOM_CENTER',
           margin: 0,
           isTesting: false
         });
+        document.body.classList.add('banner-active');
       } catch (e) {
         console.warn('Banner ad error:', e);
+        document.body.classList.remove('banner-active');
       }
     }
   },
@@ -71,6 +76,7 @@ const AdMobService = {
     if (isNativeCapacitor && AdMob) {
       try {
         await AdMob.hideBanner();
+        document.body.classList.remove('banner-active');
       } catch (e) {
         console.warn('Hide banner error:', e);
       }

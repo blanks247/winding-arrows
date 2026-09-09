@@ -797,11 +797,11 @@ const AdMobManager = {
       if (typeof AdMobService !== 'undefined' && AdMobService.showRewardedAd) {
         AdMobService.showRewardedAd(() => {
           // Verify user didn't hit back button while ad was loading
-          if (!document.getElementById('game-view').classList.contains('active')) return;
+          if (!document.getElementById('gameplay-screen').classList.contains('active')) return;
           
           ArrowGame.triggerHint(); // Hint 1
           setTimeout(() => {
-            if (document.getElementById('game-view').classList.contains('active')) {
+            if (document.getElementById('gameplay-screen').classList.contains('active')) {
               ArrowGame.triggerHint(); // Hint 2
             }
           }, 400);
@@ -888,7 +888,7 @@ const AdMobManager = {
         SoundSystem.playSelect();
         if (typeof AdMobService !== 'undefined' && AdMobService.showRewardedAd) {
           AdMobService.showRewardedAd(() => {
-            if (!document.getElementById('game-view').classList.contains('active')) return;
+            if (!document.getElementById('gameplay-screen').classList.contains('active')) return;
             ArrowGame.reviveFromGameOver();
           });
         } else {

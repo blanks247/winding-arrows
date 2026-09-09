@@ -154,9 +154,16 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  padding: 16px 16px calc(70px + env(safe-area-inset-bottom, 0px)) 16px;
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom, 0px)) 16px;
   display: flex;
   flex-direction: column;
+}
+
+body.banner-active #gameplay-screen {
+  padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+.screen {
   opacity: 0;
   pointer-events: none;
   transition: opacity var(--transition-normal);
@@ -935,7 +942,7 @@ body {
     display: none;
   }
   .screen {
-    padding: 16px 12px calc(70px + env(safe-area-inset-bottom, 0px)) 12px;
+    padding: 16px 12px calc(12px + env(safe-area-inset-bottom, 0px)) 12px;
   }
 }
 
