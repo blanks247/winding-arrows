@@ -85,24 +85,18 @@ const AdMobService = {
       try {
         await this.init();
 
-        let rewardedItem = false;
-        
         // Listeners for rewarded video completion & dismissal
         const rewardListener = await AdMob.addListener('onRewardVideoAdReward', () => {
-          rewardedItem = true;
+          if (typeof onRewardCallback === 'function') {
+            onRewardCallback();
+            onRewardCallback = null; // Prevent double firing
+          }
         });
 
         const dismissListener = await AdMob.addListener('onRewardVideoAdDismissed', () => {
           hideSpinner();
           this.isAdPreloaded = false;
-          // Requirement 3: Only give reward if 'onRewardVideoAdReward' fired (user watched whole ad)
-          if (rewardedItem && typeof onRewardCallback === 'function') {
-            setTimeout(() => onRewardCallback(), 100);
-          } else if (!rewardedItem) {
-            // User closed ad early!
-            console.log('Ad closed early, no reward given.');
-          }
-
+          
           if (rewardListener && rewardListener.remove) rewardListener.remove();
           if (dismissListener && dismissListener.remove) dismissListener.remove();
 
