@@ -75,7 +75,11 @@ const AdMobService = {
     
     if (isNativeCapacitor && AdMob) {
       try {
-        await AdMob.hideBanner();
+        if (AdMob.removeBanner) {
+          await AdMob.removeBanner();
+        } else {
+          await AdMob.hideBanner();
+        }
         document.body.classList.remove('banner-active');
       } catch (e) {
         console.warn('Hide banner error:', e);
@@ -108,15 +112,22 @@ const AdMobService = {
         // Listeners for rewarded video completion & dismissal
         const rewardListener = await AdMob.addListener('onRewardVideoAdReward', () => {
           rewardedItem = true;
+          // Grant reward instantly, but use a small timeout to allow the WebView to unfreeze after the native ad finishes
+          if (typeof onRewardCallback === 'function') {
+            setTimeout(() => {
+              if (typeof onRewardCallback === 'function') {
+                onRewardCallback();
+                onRewardCallback = null; // Prevent double firing
+              }
+            }, 300);
+          }
         });
 
         const dismissListener = await AdMob.addListener('onRewardVideoAdDismissed', () => {
           hideSpinner();
           this.isAdPreloaded = false;
           
-          if (rewardedItem && typeof onRewardCallback === 'function') {
-            setTimeout(() => onRewardCallback(), 100);
-          } else if (!rewardedItem) {
+          if (!rewardedItem) {
             console.log('Ad closed early, no reward given.');
           }
 
