@@ -521,16 +521,12 @@ const App = {
     const emojiSpan = document.getElementById('profile-avatar-emoji');
     const imgEl = document.getElementById('profile-avatar-img');
 
-    // Fix keyboard covering profile input dynamically
+    // Fix keyboard covering profile input natively via scrollIntoView
     if (inputProfileName) {
       inputProfileName.addEventListener('focus', function() {
-        if (profileModal) profileModal.style.paddingBottom = '150px';
         setTimeout(() => {
           this.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }, 300);
-      });
-      inputProfileName.addEventListener('blur', function() {
-        if (profileModal) profileModal.style.paddingBottom = '20px';
       });
     }
 

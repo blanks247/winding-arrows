@@ -854,7 +854,7 @@ body {
   max-width: 320px;
   text-align: center;
   box-shadow: 0 15px 35px rgba(104, 92, 76, 0.08);
-  margin: 40px auto 100px auto;
+  margin: auto;
   flex-shrink: 0;
 }
 
@@ -1417,7 +1417,7 @@ body {
   justify-content: space-between;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
   margin-top: 8px;
-  margin-bottom: calc(60px + env(safe-area-inset-bottom, 12px));
+  margin-bottom: calc(12px + env(safe-area-inset-bottom, 12px));
 }
 
 .player-rank-info {
