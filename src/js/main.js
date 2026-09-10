@@ -811,9 +811,8 @@ const AdMobManager = {
     document.getElementById('btn-hint').addEventListener('click', () => {
       const playSlowHint = () => {
         ArrowGame.triggerHint(); // Flash 1 (Instant)
-        setTimeout(() => { if (document.getElementById('gameplay-screen').classList.contains('active')) ArrowGame.triggerHint(); }, 800);  // Flash 2
-        setTimeout(() => { if (document.getElementById('gameplay-screen').classList.contains('active')) ArrowGame.triggerHint(); }, 1600); // Flash 3
-        setTimeout(() => { if (document.getElementById('gameplay-screen').classList.contains('active')) ArrowGame.triggerHint(); }, 2400); // Flash 4
+        setTimeout(() => { if (document.getElementById('gameplay-screen').classList.contains('active')) ArrowGame.triggerHint(); }, 1200); // Flash 2
+        setTimeout(() => { if (document.getElementById('gameplay-screen').classList.contains('active')) ArrowGame.triggerHint(); }, 2400); // Flash 3
       };
 
       if (typeof AdMobService !== 'undefined' && AdMobService.showRewardedAd) {
