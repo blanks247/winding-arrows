@@ -521,12 +521,16 @@ const App = {
     const emojiSpan = document.getElementById('profile-avatar-emoji');
     const imgEl = document.getElementById('profile-avatar-img');
 
-    // Fix keyboard covering profile input natively via scrollIntoView
+    // User's brilliant idea: explicitly add scroll padding ONLY on focus, remove on blur
     if (inputProfileName) {
       inputProfileName.addEventListener('focus', function() {
+        if (profileModal) profileModal.style.paddingBottom = '350px';
         setTimeout(() => {
           this.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 300);
+        }, 100);
+      });
+      inputProfileName.addEventListener('blur', function() {
+        if (profileModal) profileModal.style.paddingBottom = '20px';
       });
     }
 
