@@ -47,8 +47,8 @@ const AdMobService = {
   },
 
   async showBanner() {
-    if (!navigator.onLine) return;
-    
+    document.body.classList.add('banner-active');
+
     const isNativeCapacitor = window.Capacitor && window.Capacitor.isNativePlatform();
     const AdMob = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob;
     
@@ -61,7 +61,6 @@ const AdMobService = {
           margin: 0,
           isTesting: false
         });
-        document.body.classList.add('banner-active');
       } catch (e) {
         console.warn('Banner ad error:', e);
         document.body.classList.remove('banner-active');
