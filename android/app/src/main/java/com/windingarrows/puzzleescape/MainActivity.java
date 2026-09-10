@@ -15,18 +15,16 @@ public class MainActivity extends BridgeActivity {
         super.onCreate(savedInstanceState);
 
         // 1. Apply System Window Insets Padding directly to the Android App Container
-        // This physically shifts the WebView viewport BELOW the camera notch/status bar and ABOVE the navigation bar!
         View rootView = findViewById(android.R.id.content);
         if (rootView != null) {
             ViewCompat.setOnApplyWindowInsetsListener(rootView, (v, insets) -> {
                 Insets statusBarInsets = insets.getInsets(WindowInsetsCompat.Type.statusBars() | WindowInsetsCompat.Type.displayCutout());
-                Insets navBarInsets = insets.getInsets(WindowInsetsCompat.Type.navigationBars());
 
                 v.setPadding(
                     statusBarInsets.left,
                     statusBarInsets.top,
                     statusBarInsets.right,
-                    navBarInsets.bottom
+                    0 // Enforce 0 bottom padding because navigation bar is hidden
                 );
                 return WindowInsetsCompat.CONSUMED;
             });
@@ -50,5 +48,25 @@ public class MainActivity extends BridgeActivity {
                 }
             }
         });
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus) {
+            hideSystemUI();
+        }
+    }
+
+    private void hideSystemUI() {
+        View decorView = getWindow().getDecorView();
+        decorView.setSystemUiVisibility(
+            View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+            | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+            | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+            | View.SYSTEM_UI_FLAG_FULLSCREEN
+        );
     }
 }

@@ -378,18 +378,20 @@ const App = {
   },
 
   bindEvents() {
-    // Robust window resize listener to detect soft keyboard opening/closing and pad overlays appropriately
-    const initialHeight = window.innerHeight;
-    window.addEventListener('resize', () => {
-      const profileOverlay = document.getElementById('profile-overlay');
-      if (profileOverlay && profileOverlay.classList.contains('active')) {
-        if (window.innerHeight < initialHeight * 0.8) {
-          profileOverlay.style.paddingBottom = '150px'; // Keyboard is open
-        } else {
-          profileOverlay.style.paddingBottom = '20px';  // Keyboard is closed
+    // Modern bulletproof keyboard detection using visualViewport
+    if (window.visualViewport) {
+      const initialHeight = window.innerHeight;
+      window.visualViewport.addEventListener('resize', () => {
+        const profileOverlay = document.getElementById('profile-overlay');
+        if (profileOverlay && profileOverlay.classList.contains('active')) {
+          if (window.visualViewport.height < initialHeight * 0.8) {
+            profileOverlay.style.paddingBottom = '150px'; // Keyboard is open
+          } else {
+            profileOverlay.style.paddingBottom = '20px';  // Keyboard is closed
+          }
         }
-      }
-    });
+      });
+    }
 
     document.getElementById('btn-play').addEventListener('click', () => this.showScreen('level-select-screen'));
     document.getElementById('btn-level-back').addEventListener('click', () => this.showScreen('menu-screen'));

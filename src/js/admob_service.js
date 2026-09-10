@@ -126,8 +126,11 @@ const AdMobService = {
             }
           }, 500);
 
-          if (rewardListener && rewardListener.remove) rewardListener.remove();
-          if (dismissListener && dismissListener.remove) dismissListener.remove();
+          // Delay removing listeners for 2 seconds just in case the JS bridge is heavily delayed
+          setTimeout(() => {
+            if (rewardListener && rewardListener.remove) rewardListener.remove();
+            if (dismissListener && dismissListener.remove) dismissListener.remove();
+          }, 2000);
 
           // Immediately preload next ad in background!
           setTimeout(() => this.preloadRewardedAd(), 1000);
