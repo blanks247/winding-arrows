@@ -1277,7 +1277,8 @@ body.banner-active .screen {
   gap: 12px;
   width: 100%;
   max-width: 420px;
-  height: calc(100% - 65px);
+  flex: 1;
+  min-height: 0;
   padding: 0;
   box-sizing: border-box;
 }
@@ -1659,7 +1660,8 @@ body.banner-active .screen {
 .lb-tab-content {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   width: 100%;
 }
 
