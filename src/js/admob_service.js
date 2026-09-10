@@ -109,11 +109,11 @@ const AdMobService = {
         let rewardedItem = false;
         
         // Listeners for rewarded video completion & dismissal
-        const rewardListener = await AdMob.addListener('onRewardVideoAdReward', () => {
+        const rewardListener = await AdMob.addListener('onRewardedVideoAdReward', () => {
           rewardedItem = true;
         });
 
-        const dismissListener = await AdMob.addListener('onRewardVideoAdDismissed', () => {
+        const dismissListener = await AdMob.addListener('onRewardedVideoAdDismissed', () => {
           hideSpinner();
           this.isAdPreloaded = false;
           
