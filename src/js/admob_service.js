@@ -111,24 +111,20 @@ const AdMobService = {
         // Listeners for rewarded video completion & dismissal
         const rewardListener = await AdMob.addListener('onRewardVideoAdReward', () => {
           rewardedItem = true;
-          // Grant reward instantly, but use a small timeout to allow the WebView to unfreeze after the native ad finishes
-          if (typeof onRewardCallback === 'function') {
-            setTimeout(() => {
-              if (typeof onRewardCallback === 'function') {
-                onRewardCallback();
-                onRewardCallback = null; // Prevent double firing
-              }
-            }, 300);
-          }
         });
 
         const dismissListener = await AdMob.addListener('onRewardVideoAdDismissed', () => {
           hideSpinner();
           this.isAdPreloaded = false;
           
-          if (!rewardedItem) {
-            console.log('Ad closed early, no reward given.');
-          }
+          // Wait 500ms before checking reward to guarantee the JS bridge has updated the rewardedItem flag
+          setTimeout(() => {
+            if (rewardedItem && typeof onRewardCallback === 'function') {
+              onRewardCallback();
+            } else if (!rewardedItem) {
+              console.log('Ad closed early, no reward given.');
+            }
+          }, 500);
 
           if (rewardListener && rewardListener.remove) rewardListener.remove();
           if (dismissListener && dismissListener.remove) dismissListener.remove();
