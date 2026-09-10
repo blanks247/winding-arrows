@@ -159,8 +159,8 @@ body {
   flex-direction: column;
 }
 
-body.banner-active #gameplay-screen {
-  padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px)) !important;
+body.banner-active .screen {
+  padding-bottom: calc(110px + env(safe-area-inset-bottom, 0px)) !important;
 }
 
 .screen {
