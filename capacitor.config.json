@@ -4,6 +4,10 @@
   "webDir": "dist",
   "backgroundColor": "#fdfbf7",
   "plugins": {
+    "Keyboard": {
+      "resize": "native",
+      "resizeOnFullScreen": true
+    },
     "SplashScreen": {
       "launchShowDuration": 0,
       "launchAutoHide": true,
