@@ -942,8 +942,8 @@ const AdMobManager = {
       const organicFrequency = 0.4 + Math.sin(i * 0.1) * 0.1;
       const x = 180 + Math.sin(i * organicFrequency) * 110; 
       
-      // Bottom to top
-      const y = TOTAL_HEIGHT - 100 - (i * SPACING_Y);
+      // Bottom to top (pushing the entire path up by an extra 60px)
+      const y = TOTAL_HEIGHT - 160 - (i * SPACING_Y);
       
       coords.push({ id: i + 1, x, y });
     }

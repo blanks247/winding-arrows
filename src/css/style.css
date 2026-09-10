@@ -949,7 +949,7 @@ body.banner-active .screen {
 /* Skeuomorphic Cream Pill FAB */
 .fab-cream-pill {
   position: absolute;
-  bottom: 24px;
+  bottom: calc(32px + env(safe-area-inset-bottom, 0px));
   left: 50%;
   transform: translateX(-50%);
   z-index: 50;
