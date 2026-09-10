@@ -809,21 +809,20 @@ const AdMobManager = {
     // Game Inputs
     document.getElementById('btn-undo').addEventListener('click', () => ArrowGame.undoMove());
     document.getElementById('btn-hint').addEventListener('click', () => {
+      const playSlowHint = () => {
+        ArrowGame.triggerHint(); // Flash 1 (Instant)
+        setTimeout(() => { if (document.getElementById('gameplay-screen').classList.contains('active')) ArrowGame.triggerHint(); }, 800);  // Flash 2
+        setTimeout(() => { if (document.getElementById('gameplay-screen').classList.contains('active')) ArrowGame.triggerHint(); }, 1600); // Flash 3
+        setTimeout(() => { if (document.getElementById('gameplay-screen').classList.contains('active')) ArrowGame.triggerHint(); }, 2400); // Flash 4
+      };
+
       if (typeof AdMobService !== 'undefined' && AdMobService.showRewardedAd) {
         AdMobService.showRewardedAd(() => {
-          // Verify user didn't hit back button while ad was loading
           if (!document.getElementById('gameplay-screen').classList.contains('active')) return;
-          
-          ArrowGame.triggerHint(); // Hint 1
-          setTimeout(() => {
-            if (document.getElementById('gameplay-screen').classList.contains('active')) {
-              ArrowGame.triggerHint(); // Hint 2
-            }
-          }, 400);
+          playSlowHint();
         });
       } else {
-        ArrowGame.triggerHint();
-        setTimeout(() => ArrowGame.triggerHint(), 400);
+        playSlowHint();
       }
     });
 
