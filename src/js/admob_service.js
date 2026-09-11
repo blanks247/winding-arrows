@@ -4,12 +4,13 @@ const AdMobService = {
   // Official Live Ad Unit IDs
   AD_UNITS: {
     rewarded: 'ca-app-pub-3273633685340729/6644140798',
-    interstitial: 'ca-app-pub-3940256099942544/1033173712', // Fallback test ID
+    interstitial: 'ca-app-pub-3273633685340729/5524017277',
     banner: 'ca-app-pub-3273633685340729/8012073104'
   },
 
   isInitialized: false,
   isAdPreloaded: false,
+  isInterstitialPreloaded: false,
 
   async init() {
     if (this.isInitialized) return;
@@ -24,6 +25,7 @@ const AdMobService = {
         });
         this.isInitialized = true;
         this.preloadRewardedAd();
+        this.preloadInterstitialAd();
       } catch (e) {
         console.warn('AdMob initialization warning:', e);
       }
@@ -159,6 +161,61 @@ const AdMobService = {
           onRewardCallback();
         }
       }, 800);
+    }
+  },
+
+  async preloadInterstitialAd() {
+    const isNativeCapacitor = window.Capacitor && window.Capacitor.isNativePlatform();
+    const AdMob = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob;
+    if (isNativeCapacitor && AdMob && !this.isInterstitialPreloaded) {
+      try {
+        await AdMob.prepareInterstitial({
+          adId: this.AD_UNITS.interstitial,
+          isTesting: false
+        });
+        this.isInterstitialPreloaded = true;
+      } catch (e) {
+        console.warn('Preload interstitial error:', e);
+      }
+    }
+  },
+
+  async showInterstitialAd(onCompleteCallback) {
+    if (!navigator.onLine) {
+      if (typeof onCompleteCallback === 'function') onCompleteCallback();
+      return;
+    }
+
+    const isNativeCapacitor = window.Capacitor && window.Capacitor.isNativePlatform();
+    const AdMob = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob;
+
+    const proceed = () => {
+      if (typeof onCompleteCallback === 'function') onCompleteCallback();
+      this.preloadInterstitialAd();
+    };
+
+    if (isNativeCapacitor && AdMob) {
+      try {
+        await this.init();
+
+        const dismissListener = await AdMob.addListener('interstitialAdDismissed', () => {
+          proceed();
+          if (dismissListener && dismissListener.remove) dismissListener.remove();
+        });
+
+        const failListener = await AdMob.addListener('interstitialAdFailedToShow', () => {
+          proceed();
+          if (failListener && failListener.remove) failListener.remove();
+        });
+
+        await AdMob.showInterstitial();
+        this.isInterstitialPreloaded = false; // Need to reload after showing
+      } catch (e) {
+        console.warn('Show interstitial error:', e);
+        proceed();
+      }
+    } else {
+      proceed();
     }
   }
 };

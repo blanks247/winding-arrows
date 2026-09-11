@@ -5,6 +5,7 @@ const App = {
   clearedLevels: [],
   sfxEnabled: true,
   musicEnabled: true,
+  levelsBeatenThisSession: 0,
 
   init() {
     this.sfxEnabled = localStorage.getItem('winding_arrows_sfx') !== 'false';
@@ -857,17 +858,28 @@ const AdMobManager = {
       SoundSystem.playSelect();
       document.getElementById('victory-overlay').classList.remove('active');
       
-      const nextId = ArrowGame.level.id + 1;
-      if (nextId <= 500) {
-        console.time(`LoadLevel-${nextId}`);
-        const nextData = getLevel(nextId);
-        ArrowGame.startLevel(nextData);
-        console.timeEnd(`LoadLevel-${nextId}`);
-        this.updateGlobalHUD();
+      this.levelsBeatenThisSession++;
+
+      const loadNextLevel = () => {
+        const nextId = ArrowGame.level.id + 1;
+        if (nextId <= 500) {
+          console.time(`LoadLevel-${nextId}`);
+          const nextData = getLevel(nextId);
+          ArrowGame.startLevel(nextData);
+          console.timeEnd(`LoadLevel-${nextId}`);
+          this.updateGlobalHUD();
+        } else {
+          alert("🎉 INCREDIBLE! You have unlocked and escaped all 500 polyline sectors!");
+          this.showScreen('level-select-screen');
+          this.renderLevelSelect();
+        }
+      };
+
+      if (this.levelsBeatenThisSession >= 5 && typeof AdMobService !== 'undefined' && AdMobService.showInterstitialAd) {
+        this.levelsBeatenThisSession = 0;
+        AdMobService.showInterstitialAd(loadNextLevel);
       } else {
-        alert("🎉 INCREDIBLE! You have unlocked and escaped all 500 polyline sectors!");
-        this.showScreen('level-select-screen');
-        this.renderLevelSelect();
+        loadNextLevel();
       }
     });
 
