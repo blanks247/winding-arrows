@@ -138,7 +138,7 @@ const App = {
     this.loadProgress();
     if (!this.clearedLevels || this.clearedLevels.length === 0) return 1;
     const maxCleared = Math.max(...this.clearedLevels);
-    return Math.min(500, maxCleared + 1);
+    return Math.min(1000, maxCleared + 1);
   },
 
   scrollToCurrentLevel(smooth = true) {
@@ -862,18 +862,105 @@ const AdMobManager = {
 
       const loadNextLevel = () => {
         const nextId = ArrowGame.level.id + 1;
-        if (nextId <= 500) {
+        if (nextId <= 1000) {
           console.time(`LoadLevel-${nextId}`);
           const nextData = getLevel(nextId);
           ArrowGame.startLevel(nextData);
           console.timeEnd(`LoadLevel-${nextId}`);
           this.updateGlobalHUD();
         } else {
-          alert("🎉 INCREDIBLE! You have unlocked and escaped all 500 polyline sectors!");
+          alert("🎉 INCREDIBLE! You have unlocked and escaped all 1000 polyline sectors!");
           this.showScreen('level-select-screen');
           this.renderLevelSelect();
         }
       };
+
+      // ==== LEVEL 500 CELEBRATION INJECTION ====
+      if (ArrowGame.level && ArrowGame.level.id === 500) {
+          const partyOverlay = document.createElement('div');
+          partyOverlay.className = "screen fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/90 backdrop-blur-md active";
+          partyOverlay.innerHTML = `
+            <div class="text-center p-8 bg-gradient-to-b from-indigo-900 to-purple-900 border-2 border-amber-400 rounded-3xl shadow-[0_0_50px_rgba(251,191,36,0.6)]" style="margin: 20px;">
+              <h1 class="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-amber-500 mb-4" style="animation: bounce 1s infinite;">CONGRATULATIONS!</h1>
+              <p class="text-white text-xl font-bold mb-6">You have crossed Level 500!</p>
+              <div class="text-6xl mb-6">🎉🏆🚀</div>
+              <p class="text-amber-200 mb-8 max-w-sm mx-auto">But the journey is not over... 500 MORE levels have just been unlocked!</p>
+              <button id="btn-party-continue" class="px-8 py-4 bg-amber-500 text-slate-900 font-bold text-xl rounded-2xl shadow-xl hover:bg-amber-400 transition-all active:scale-95">REVEAL NEW LEVELS</button>
+            </div>
+          `;
+          document.body.appendChild(partyOverlay);
+          
+          if (window.confetti) {
+              const duration = 3000;
+              const end = Date.now() + duration;
+              (function frame() {
+                  confetti({ particleCount: 10, angle: 60, spread: 55, origin: { x: 0 }, zIndex: 105 });
+                  confetti({ particleCount: 10, angle: 120, spread: 55, origin: { x: 1 }, zIndex: 105 });
+                  if (Date.now() < end) requestAnimationFrame(frame);
+              }());
+          }
+          
+          document.getElementById('btn-party-continue').addEventListener('click', () => {
+              partyOverlay.remove();
+              
+              // Ensure level 501 is unlocked in save data
+              if (!UIController.clearedLevels) UIController.clearedLevels = [];
+              if (!UIController.clearedLevels.includes(500)) {
+                  UIController.clearedLevels.push(500);
+                  UIController.saveProgress();
+              }
+
+              UIController.showScreen('level-select-screen');
+              UIController.renderLevelSelect();
+              
+              const container = document.getElementById('levels-grid').parentElement;
+              if (container) {
+                  // Jump to bottom (Level 500 area roughly)
+                  const lvl500Btn = document.querySelector('[data-level="500"]');
+                  if (lvl500Btn) container.scrollTop = lvl500Btn.offsetTop - container.clientHeight / 2;
+                  
+                  // Wait 800ms, scroll to top (Level 1000) over 3 seconds
+                  setTimeout(() => {
+                      const startY = container.scrollTop;
+                      const targetY = 0;
+                      const diff = targetY - startY;
+                      const duration = 3000;
+                      const startTime = performance.now();
+                      
+                      function scrollStep(time) {
+                          let progress = (time - startTime) / duration;
+                          if (progress > 1) progress = 1;
+                          const ease = progress < 0.5 ? 4 * progress * progress * progress : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+                          container.scrollTop = startY + diff * ease;
+                          if (progress < 1) requestAnimationFrame(scrollStep);
+                          else {
+                              // Reached top! Pause, then scroll to 501.
+                              setTimeout(() => {
+                                  const lvl501Btn = document.querySelector('[data-level="501"]');
+                                  if (lvl501Btn) {
+                                      const startY2 = 0;
+                                      const targetY2 = lvl501Btn.offsetTop - container.clientHeight / 2;
+                                      const diff2 = targetY2 - startY2;
+                                      const startTime2 = performance.now();
+                                      function scrollStep2(time2) {
+                                          let p2 = (time2 - startTime2) / duration;
+                                          if (p2 > 1) p2 = 1;
+                                          const ease2 = p2 < 0.5 ? 4 * p2 * p2 * p2 : 1 - Math.pow(-2 * p2 + 2, 3) / 2;
+                                          container.scrollTop = startY2 + diff2 * ease2;
+                                          if (p2 < 1) requestAnimationFrame(scrollStep2);
+                                      }
+                                      requestAnimationFrame(scrollStep2);
+                                  }
+                              }, 1500);
+                          }
+                      }
+                      requestAnimationFrame(scrollStep);
+                  }, 800);
+              }
+          });
+          return;
+      }
+      // ==== END CELEBRATION INJECTION ====
 
       if (this.levelsBeatenThisSession >= 5 && typeof AdMobService !== 'undefined' && AdMobService.showInterstitialAd) {
         this.levelsBeatenThisSession = 0;
@@ -943,7 +1030,7 @@ const AdMobManager = {
     grid.innerHTML = '';
 
     // Scale to 500 levels
-    const TOTAL_LEVELS = 500;
+    const TOTAL_LEVELS = 1000;
     const SPACING_Y = 70;
     const TOTAL_HEIGHT = TOTAL_LEVELS * SPACING_Y + 200; // Extra padding at top/bottom
 
