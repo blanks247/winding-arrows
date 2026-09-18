@@ -411,18 +411,7 @@ body.banner-active .screen {
   /* Dynamic height will be set by main.js based on total level count */
   min-height: 100%;
   overflow: hidden;
-  /* Ultra-cute Cotton Candy Dreamscape transition */
-  background: linear-gradient(
-    180deg,
-    #ffcbf2 0%,       /* Soft baby pink */
-    #f3c4fb 15%,      /* Pastel lilac */
-    #e2c6ff 25%,      /* Soft violet */
-    #bde0fe 40%,      /* Baby blue sky */
-    #a2d2ff 55%,      /* Clear pastel blue */
-    #b9fbc0 75%,      /* Minty green */
-    #ffd6a5 90%,      /* Soft peach/orange */
-    #fdffb6 100%      /* Creamy yellow */
-  );
+  background: transparent;
   padding: 0;
   box-sizing: border-box;
 }
@@ -1357,6 +1346,118 @@ body.banner-active .screen {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.leaderboard-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Podium Layout for Top 3 */
+.podium-container {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 24px;
+  padding-top: 45px; /* Huge space for the crown so it never clips */
+}
+
+.podium-spot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #fdfbf7;
+  border: 1.5px solid #e7dfd0;
+  border-radius: 16px;
+  padding: 14px 6px 12px 6px;
+  width: 32%;
+  position: relative;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.podium-spot.rank-1 {
+  border-color: #f59e0b;
+  background: linear-gradient(135deg, #ffffff 0%, #fffbeb 100%);
+  margin-bottom: 24px; /* Elevates rank 1 */
+  z-index: 2;
+  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.2);
+}
+
+.podium-spot.rank-2 {
+  border-color: #cbd5e1;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  margin-bottom: 8px; /* Elevates rank 2 */
+}
+
+.podium-spot.rank-3 {
+  border-color: #fed7aa;
+  background: linear-gradient(135deg, #ffffff 0%, #fff7ed 100%);
+  margin-bottom: 0px; /* Base level */
+}
+
+.podium-spot.is-me {
+  border-color: #ab364f;
+  background: linear-gradient(135deg, #ffffff 0%, #fff1f2 100%);
+}
+
+.podium-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 8px;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  background: #fff;
+}
+
+.podium-rank-badge {
+  position: absolute;
+  top: -12px;
+  right: -8px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: white;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  border: 2px solid #fff;
+}
+
+.rank-1 .podium-rank-badge { background: #f59e0b; }
+.rank-2 .podium-rank-badge { background: #94a3b8; }
+.rank-3 .podium-rank-badge { background: #d97706; }
+
+.podium-name {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #443d33;
+  margin-bottom: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  line-height: 1.2;
+}
+
+.podium-level {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #78350f;
+  background: rgba(120, 53, 15, 0.08);
+  padding: 3px 8px;
+  border-radius: 12px;
 }
 
 .leaderboard-item {

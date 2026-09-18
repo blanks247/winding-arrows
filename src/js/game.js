@@ -1462,6 +1462,13 @@ const ArrowGame = {
     }
 
     SoundSystem.playWin();
+
+    // SPECIAL CASE: Level 500 skip normal victory and show party directly
+    if (this.level.id === 500 && typeof App !== 'undefined' && App.triggerLevel500Party) {
+      App.triggerLevel500Party();
+      return;
+    }
+
     this.triggerVictoryConfetti();
     document.getElementById('victory-overlay').classList.add('active');
   },

@@ -400,6 +400,22 @@ const App = {
     const viewRanks = document.getElementById('lb-tab-ranks-view');
     const viewAch = document.getElementById('lb-tab-achievements-view');
 
+    // EVENT DELEGATION: Handle all level card clicks efficiently through a single listener
+    const grid = document.getElementById('levels-grid');
+    if (grid) {
+      grid.addEventListener('click', (e) => {
+        const card = e.target.closest('.level-card');
+        if (card && !card.classList.contains('locked')) {
+          const id = parseInt(card.dataset.level, 10);
+          console.time(`LoadLevel-${id}`);
+          const lvl = getLevel(id);
+          this.showScreen('gameplay-screen');
+          ArrowGame.startLevel(lvl);
+          console.timeEnd(`LoadLevel-${id}`);
+        }
+      });
+    }
+
     if (tabRanks && tabAch) {
       tabRanks.addEventListener('click', () => {
         SoundSystem.playSelect();
@@ -470,17 +486,55 @@ const App = {
           if (filtered.length === 0) {
             catList.innerHTML = '<div style="text-align:center; padding:30px 10px; color:#78716c; font-weight:600;">No solvers in this category yet! Be the 1st to claim the crown! 👑</div>';
           } else {
-            filtered.forEach((item, idx) => {
-              const r = idx + 1;
+            // Podium Logic for Top 3
+            const top3 = filtered.slice(0, 3);
+            const rest = filtered.slice(3);
+
+            if (top3.length > 0) {
+              const podiumContainer = document.createElement('div');
+              podiumContainer.className = 'podium-container';
+              
+              const createPodiumSpot = (item, rank) => {
+                if (!item) return `<div class="podium-spot" style="visibility:hidden;"></div>`;
+                const isMe = item.id === myId;
+                const avatarHtml = (item.avatar && item.avatar.startsWith('data:image'))
+                  ? `<img src="${item.avatar}" class="podium-avatar">`
+                  : `<div class="podium-avatar">${item.avatar || '👤'}</div>`;
+                
+                const crown = rank === 1 ? `<div style="position:absolute; top:-34px; font-size:2rem; z-index:10;">👑</div>` : '';
+
+                return `
+                  <div class="podium-spot rank-${rank} ${isMe ? 'is-me' : ''}">
+                    ${crown}
+                    <div class="podium-rank-badge">#${rank}</div>
+                    ${avatarHtml}
+                    <div class="podium-name" style="${isMe ? 'color:#ab364f;' : ''}">${item.name}</div>
+                    <div class="podium-level">Lvl ${item.maxLevel}</div>
+                  </div>
+                `;
+              };
+
+              // Reorder DOM for layout: Rank 2, Rank 1, Rank 3
+              podiumContainer.innerHTML = `
+                ${createPodiumSpot(top3[1], 2)}
+                ${createPodiumSpot(top3[0], 1)}
+                ${createPodiumSpot(top3[2], 3)}
+              `;
+              catList.appendChild(podiumContainer);
+            }
+
+            // Normal list for rank 4+
+            rest.forEach((item, idx) => {
+              const r = idx + 4;
               const isMe = item.id === myId;
               const div = document.createElement('div');
-              div.className = `leaderboard-item ${r <= 3 ? 'top-three' : ''} ${isMe ? 'lb-item-me' : ''}`;
+              div.className = `leaderboard-item ${isMe ? 'lb-item-me' : ''}`;
               const avatarHtml = (item.avatar && item.avatar.startsWith('data:image'))
                 ? `<img src="${item.avatar}" style="width:28px; height:28px; border-radius:50%; object-fit:cover; margin-right:6px; vertical-align:middle;">`
-                : `<span style="font-size:1.2rem; margin-right:6px; vertical-align:middle;">${item.avatar || '🦊'}</span>`;
+                : `<span style="font-size:1.2rem; margin-right:6px; vertical-align:middle;">${item.avatar || '👤'}</span>`;
 
               div.innerHTML = `
-                <span class="lb-rank">${r === 1 ? '🥇' : r === 2 ? '🥈' : r === 3 ? '🥉' : '#' + r}</span>
+                <span class="lb-rank">#${r}</span>
                 <div class="lb-info">
                   <span class="lb-name" style="${isMe ? 'color:#ab364f; font-weight:800;' : ''}">${avatarHtml}${item.name} ${isMe ? '(YOU)' : ''}</span>
                   <span class="lb-detail">Pioneer Solver #${r}</span>
@@ -875,93 +929,7 @@ const AdMobManager = {
         }
       };
 
-      // ==== LEVEL 500 CELEBRATION INJECTION ====
-      if (ArrowGame.level && ArrowGame.level.id === 500) {
-          const partyOverlay = document.createElement('div');
-          partyOverlay.className = "screen fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/90 backdrop-blur-md active";
-          partyOverlay.innerHTML = `
-            <div class="text-center p-8 bg-gradient-to-b from-indigo-900 to-purple-900 border-2 border-amber-400 rounded-3xl shadow-[0_0_50px_rgba(251,191,36,0.6)]" style="margin: 20px;">
-              <h1 class="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-amber-500 mb-4" style="animation: bounce 1s infinite;">CONGRATULATIONS!</h1>
-              <p class="text-white text-xl font-bold mb-6">You have crossed Level 500!</p>
-              <div class="text-6xl mb-6">🎉🏆🚀</div>
-              <p class="text-amber-200 mb-8 max-w-sm mx-auto">But the journey is not over... 500 MORE levels have just been unlocked!</p>
-              <button id="btn-party-continue" class="px-8 py-4 bg-amber-500 text-slate-900 font-bold text-xl rounded-2xl shadow-xl hover:bg-amber-400 transition-all active:scale-95">REVEAL NEW LEVELS</button>
-            </div>
-          `;
-          document.body.appendChild(partyOverlay);
-          
-          if (window.confetti) {
-              const duration = 3000;
-              const end = Date.now() + duration;
-              (function frame() {
-                  confetti({ particleCount: 10, angle: 60, spread: 55, origin: { x: 0 }, zIndex: 105 });
-                  confetti({ particleCount: 10, angle: 120, spread: 55, origin: { x: 1 }, zIndex: 105 });
-                  if (Date.now() < end) requestAnimationFrame(frame);
-              }());
-          }
-          
-          document.getElementById('btn-party-continue').addEventListener('click', () => {
-              partyOverlay.remove();
-              
-              // Ensure level 501 is unlocked in save data
-              if (!UIController.clearedLevels) UIController.clearedLevels = [];
-              if (!UIController.clearedLevels.includes(500)) {
-                  UIController.clearedLevels.push(500);
-                  UIController.saveProgress();
-              }
-
-              UIController.showScreen('level-select-screen');
-              UIController.renderLevelSelect();
-              
-              const container = document.getElementById('levels-grid').parentElement;
-              if (container) {
-                  // Jump to bottom (Level 500 area roughly)
-                  const lvl500Btn = document.querySelector('[data-level="500"]');
-                  if (lvl500Btn) container.scrollTop = lvl500Btn.offsetTop - container.clientHeight / 2;
-                  
-                  // Wait 800ms, scroll to top (Level 1000) over 3 seconds
-                  setTimeout(() => {
-                      const startY = container.scrollTop;
-                      const targetY = 0;
-                      const diff = targetY - startY;
-                      const duration = 3000;
-                      const startTime = performance.now();
-                      
-                      function scrollStep(time) {
-                          let progress = (time - startTime) / duration;
-                          if (progress > 1) progress = 1;
-                          const ease = progress < 0.5 ? 4 * progress * progress * progress : 1 - Math.pow(-2 * progress + 2, 3) / 2;
-                          container.scrollTop = startY + diff * ease;
-                          if (progress < 1) requestAnimationFrame(scrollStep);
-                          else {
-                              // Reached top! Pause, then scroll to 501.
-                              setTimeout(() => {
-                                  const lvl501Btn = document.querySelector('[data-level="501"]');
-                                  if (lvl501Btn) {
-                                      const startY2 = 0;
-                                      const targetY2 = lvl501Btn.offsetTop - container.clientHeight / 2;
-                                      const diff2 = targetY2 - startY2;
-                                      const startTime2 = performance.now();
-                                      function scrollStep2(time2) {
-                                          let p2 = (time2 - startTime2) / duration;
-                                          if (p2 > 1) p2 = 1;
-                                          const ease2 = p2 < 0.5 ? 4 * p2 * p2 * p2 : 1 - Math.pow(-2 * p2 + 2, 3) / 2;
-                                          container.scrollTop = startY2 + diff2 * ease2;
-                                          if (p2 < 1) requestAnimationFrame(scrollStep2);
-                                      }
-                                      requestAnimationFrame(scrollStep2);
-                                  }
-                              }, 1500);
-                          }
-                      }
-                      requestAnimationFrame(scrollStep);
-                  }, 800);
-              }
-          });
-          return;
-      }
-      // ==== END CELEBRATION INJECTION ====
-
+      // Standard next level logic
       if (this.levelsBeatenThisSession >= 5 && typeof AdMobService !== 'undefined' && AdMobService.showInterstitialAd) {
         this.levelsBeatenThisSession = 0;
         AdMobService.showInterstitialAd(loadNextLevel);
@@ -1024,18 +992,164 @@ const AdMobManager = {
     });
   },
 
+  triggerLevel500Party() {
+      const partyOverlay = document.createElement('div');
+      partyOverlay.className = "overlay active";
+      partyOverlay.style.zIndex = "999";
+      partyOverlay.innerHTML = `
+        <div class="overlay-card" style="max-width: 320px; padding: 40px 24px; text-align: center; border-radius: 24px; border: 2px solid #facc15; background: linear-gradient(180deg, rgba(253,251,247,1) 0%, rgba(254,249,195,0.4) 100%);">
+          <h1 style="font-size: 1.4rem; font-weight: 800; color: #d97706; margin-bottom: 8px; letter-spacing: 1px;">CONGRATULATIONS!</h1>
+          <p style="font-size: 1.05rem; color: #443d33; font-weight: 700; margin-bottom: 16px;">Sector 500 Cleared</p>
+          <div style="width: 64px; height: 64px; margin: 0 auto 20px auto; background: #fef08a; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: inset 0 -4px 12px rgba(234, 179, 8, 0.4);">
+              <span style="font-size: 2rem;">🏆</span>
+          </div>
+          <p style="font-size: 0.9rem; color: #57534e; font-weight: 600; margin-bottom: 24px; line-height: 1.5;">Your journey is far from over.<br><span style="color: #b45309; font-weight: 800; font-size: 1rem;">500 NEW LEVELS</span><br>have been unlocked.</p>
+          <div class="overlay-actions">
+             <button id="btn-party-continue" class="btn btn-primary" style="background: #f59e0b; color: #fff; border: none; width: 100%; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);">REVEAL NEW LEVELS</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(partyOverlay);
+      
+      // Manual DOM Confetti (No CDN dependency)
+      const colors = ['#facc15', '#fb923c', '#f43f5e', '#38bdf8', '#a3e635'];
+      for (let i = 0; i < 60; i++) {
+          const conf = document.createElement('div');
+          conf.style.position = 'absolute';
+          conf.style.width = Math.random() > 0.5 ? '8px' : '6px';
+          conf.style.height = Math.random() > 0.5 ? '16px' : '6px';
+          conf.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+          conf.style.top = '-20px';
+          conf.style.left = Math.random() * 100 + 'vw';
+          conf.style.opacity = Math.random() + 0.5;
+          conf.style.transform = `rotate(${Math.random() * 360}deg)`;
+          conf.style.pointerEvents = 'none';
+          conf.style.zIndex = '1000';
+          partyOverlay.appendChild(conf);
+
+          const duration = 2000 + Math.random() * 3000;
+          const delay = Math.random() * 1000;
+          conf.animate([
+              { transform: `translate3d(0,0,0) rotate(0deg)`, opacity: 1 },
+              { transform: `translate3d(${Math.random()*200 - 100}px, 100vh, 0) rotate(${Math.random()*720}deg)`, opacity: 0 }
+          ], { duration, delay, iterations: Infinity });
+      }
+
+      document.getElementById('btn-party-continue').addEventListener('click', () => {
+          partyOverlay.remove();
+          
+          // Ensure level 501 is unlocked in save data
+          if (!App.clearedLevels) App.clearedLevels = [];
+          if (!App.clearedLevels.includes(500)) {
+              App.clearedLevels.push(500);
+              localStorage.setItem('winding_cleared_levels', JSON.stringify(App.clearedLevels));
+          }
+
+          App.showScreen('level-select-screen');
+          App.renderLevelSelect();
+          
+          // Delay the scroll jump by 50ms so the browser has a frame to paint the new CSS background texture before compositing the jump
+          setTimeout(() => {
+              const container = document.getElementById('levels-grid').parentElement;
+              if (container) {
+                  // Jump to bottom (Level 500 area roughly)
+                  const lvl500Btn = document.querySelector('[data-level="500"]');
+                  if (lvl500Btn) container.scrollTop = lvl500Btn.offsetTop - container.clientHeight / 2;
+                  
+                  // Wait 800ms, scroll to top (Level 1000) over 3 seconds
+                  setTimeout(() => {
+                      const startY = container.scrollTop;
+                      const targetY = 0;
+                      const diff = targetY - startY;
+                      const duration = 3000;
+                      const startTime = performance.now();
+                      
+                      function scrollStep(time) {
+                          let progress = (time - startTime) / duration;
+                          if (progress > 1) progress = 1;
+                          const ease = progress < 0.5 ? 4 * progress * progress * progress : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+                          container.scrollTop = startY + diff * ease;
+                          if (progress < 1) requestAnimationFrame(scrollStep);
+                          else {
+                              // Reached top! Pause, then scroll to 501.
+                              setTimeout(() => {
+                                  const lvl501Btn = document.querySelector('[data-level="501"]');
+                                  if (lvl501Btn) {
+                                      const startY2 = 0;
+                                      const targetY2 = lvl501Btn.offsetTop - container.clientHeight / 2;
+                                      const diff2 = targetY2 - startY2;
+                                      const startTime2 = performance.now();
+                                      function scrollStep2(time2) {
+                                          let p2 = (time2 - startTime2) / duration;
+                                          if (p2 > 1) p2 = 1;
+                                          const ease2 = p2 < 0.5 ? 4 * p2 * p2 * p2 : 1 - Math.pow(-2 * p2 + 2, 3) / 2;
+                                          container.scrollTop = startY2 + diff2 * ease2;
+                                          if (p2 < 1) requestAnimationFrame(scrollStep2);
+                                      }
+                                      requestAnimationFrame(scrollStep2);
+                                  }
+                              }, 1500);
+                          }
+                      }
+                      requestAnimationFrame(scrollStep);
+                  }, 800);
+              }
+          }, 50);
+      });
+  },
+
   renderLevelSelect() {
     this.loadProgress();
+
+    const scrollArea = document.querySelector('.levels-scroll-area');
     const grid = document.getElementById('levels-grid');
     grid.innerHTML = '';
 
-    // Scale to 500 levels
-    const TOTAL_LEVELS = 1000;
+    // Dynamically expand to 1000 levels only after level 500 is cleared
+    const TOTAL_LEVELS = (this.clearedLevels && this.clearedLevels.includes(500)) ? 1000 : 500;
     const SPACING_Y = 70;
     const TOTAL_HEIGHT = TOTAL_LEVELS * SPACING_Y + 200; // Extra padding at top/bottom
 
     // Set the dynamic height of the map container
     grid.style.height = `${TOTAL_HEIGHT}px`;
+
+    // ULTIMATE WORKAROUND FOR MOBILE GPU LIMITS (Parallax Background):
+    // Since mobile GPUs outright refuse to render backgrounds on 70,000px tall elements,
+    // we decouple the background into a fixed, safe 8,000px tall layer behind the scroll area.
+    // We then mathematically scroll this layer using transform: translateY to perfectly match 
+    // the visual scroll of the 70,000px map! This completely bypasses the browser bugs!
+    let bgContainer = document.getElementById('parallax-bg-container');
+    if (!bgContainer) {
+        bgContainer = document.createElement('div');
+        bgContainer.id = 'parallax-bg-container';
+        bgContainer.style.position = 'absolute';
+        bgContainer.style.top = '0';
+        bgContainer.style.left = '0';
+        bgContainer.style.width = '100%';
+        bgContainer.style.height = '100%';
+        bgContainer.style.zIndex = '-1';
+        bgContainer.style.overflow = 'hidden';
+
+        const bgLayer = document.createElement('div');
+        bgLayer.id = 'parallax-bg-layer';
+        bgLayer.style.width = '100%';
+        bgLayer.style.height = '8000px'; // Extremely safe for all mobile GPUs
+        bgLayer.style.background = `linear-gradient(180deg, #ffcbf2 0%, #f3c4fb 15%, #e2c6ff 25%, #bde0fe 40%, #a2d2ff 55%, #b9fbc0 75%, #ffd6a5 90%, #fdffb6 100%)`;
+        bgLayer.style.willChange = 'transform';
+        bgContainer.appendChild(bgLayer);
+
+        document.getElementById('level-select-screen').prepend(bgContainer);
+
+        scrollArea.addEventListener('scroll', () => {
+            const maxScroll = scrollArea.scrollHeight - scrollArea.clientHeight;
+            const pct = maxScroll > 0 ? scrollArea.scrollTop / maxScroll : 0;
+            const maxBgScroll = 8000 - scrollArea.clientHeight;
+            bgLayer.style.transform = `translate3d(0, -${pct * maxBgScroll}px, 0)`;
+        });
+    }
+    
+    // Trigger initial background position
+    scrollArea.dispatchEvent(new Event('scroll'));
 
     // Algorithmically generate the winding coordinates for 500 levels
     const coords = [];
@@ -1070,13 +1184,15 @@ const AdMobManager = {
     pathBase.setAttribute("fill", "none");
     svg.appendChild(pathBase);
 
+    const frag = document.createDocumentFragment();
+
     const pathDash = document.createElementNS("http://www.w3.org/2000/svg", "path");
     pathDash.setAttribute("d", dStr);
     pathDash.setAttribute("fill", "none");
     pathDash.setAttribute("class", "path-dash");
     svg.appendChild(pathDash);
 
-    grid.appendChild(svg);
+    frag.appendChild(svg);
 
     // Scale cute nature birds proportionally to map height
     const numBirds = Math.floor(TOTAL_HEIGHT / 250); // More birds!
@@ -1113,7 +1229,7 @@ const AdMobManager = {
       `;
       
       birdContainer.innerHTML = svgHTML;
-      grid.appendChild(birdContainer);
+      frag.appendChild(birdContainer);
     }
 
     // Scale dreamy clouds proportionally to map height
@@ -1124,7 +1240,7 @@ const AdMobManager = {
       cloud.style.top = `${50 + (i * 300)}px`;
       cloud.style.animationDelay = `${i * 4}s`;
       cloud.style.animationDuration = `${40 + (Math.random() * 20)}s`;
-      grid.appendChild(cloud);
+      frag.appendChild(cloud);
     }
 
     // Create level selector badges
@@ -1132,6 +1248,7 @@ const AdMobManager = {
       const coord = coords[id - 1];
       const card = document.createElement('div');
       card.className = 'level-card';
+      card.dataset.level = id;
       // Use percentages so cards precisely follow the scaled SVG path on any screen width
       card.style.left = `${(coord.x / 360) * 100}%`;
       card.style.top = `${(coord.y / TOTAL_HEIGHT) * 100}%`;
@@ -1165,17 +1282,10 @@ const AdMobManager = {
         `;
       }
 
-      if (isUnlocked) {
-        card.addEventListener('click', () => {
-          console.time(`LoadLevel-${id}`);
-          const lvl = getLevel(id);
-          this.showScreen('gameplay-screen');
-          ArrowGame.startLevel(lvl);
-          console.timeEnd(`LoadLevel-${id}`);
-        });
-      }
-      grid.appendChild(card);
+      frag.appendChild(card);
     }
+
+    grid.appendChild(frag);
 
     // Update Floating Action Button text with current unlocked level number
     const currentId = this.getCurrentUnlockedLevelId();
