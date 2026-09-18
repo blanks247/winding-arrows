@@ -1,5 +1,7 @@
 // Winding Arrows - Standalone Main Controller
 
+const APP_VERSION = 157;
+
 const App = {
   activeScreen: 'menu-screen',
   clearedLevels: [],
@@ -8,6 +10,9 @@ const App = {
   levelsBeatenThisSession: 0,
 
   init() {
+    this.checkForUpdates();
+    this.setupNotifications();
+    
     this.sfxEnabled = localStorage.getItem('winding_arrows_sfx') !== 'false';
     this.musicEnabled = localStorage.getItem('winding_arrows_music') !== 'false';
     this.updateSettingsUI();
@@ -50,6 +55,8 @@ const App = {
     // Pause background audio & auto-open Pause popover when app goes to background / power button pressed
     const handleVisibilityOrPause = () => {
       if (document.hidden || document.visibilityState === 'hidden') {
+        App.scheduleRetentionNotification(); // Schedule 24h notification
+        
         if (typeof SoundSystem !== 'undefined' && SoundSystem.stopTrainMusic) {
           SoundSystem.stopTrainMusic();
         }
@@ -62,10 +69,10 @@ const App = {
           if (pauseOverlay) pauseOverlay.classList.add('active');
         }
       } else {
+        App.cancelRetentionNotification(); // Cancel notification since they came back early
+        
         if (typeof SoundSystem !== 'undefined' && SoundSystem.ctx && SoundSystem.ctx.state === 'suspended') {
           SoundSystem.ctx.resume();
-        }
-        if (this.musicEnabled && typeof SoundSystem !== 'undefined' && SoundSystem.playTrainMusic) {
           SoundSystem.playTrainMusic();
         }
       }
@@ -127,6 +134,80 @@ const App = {
           CapApp.exitApp();
         }
       });
+    }
+  },
+
+  async checkForUpdates() {
+    try {
+      const res = await fetch(`version.json?t=${new Date().getTime()}`);
+      if (!res.ok) return; 
+      
+      const data = await res.json();
+      
+      if (APP_VERSION < data.min_version) {
+        const overlay = document.getElementById('update-overlay');
+        const msgEl = document.getElementById('update-message-text');
+        const btn = document.getElementById('btn-force-update');
+        
+        if (overlay && btn) {
+          if (data.update_message && msgEl) {
+              msgEl.textContent = data.update_message;
+          }
+          overlay.classList.add('active');
+          overlay.style.zIndex = "99999"; 
+          btn.addEventListener('click', () => {
+            window.location.href = data.update_url;
+          });
+        }
+      }
+    } catch (err) {
+      console.log("Could not check for updates", err);
+    }
+  },
+
+  async setupNotifications() {
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications) {
+      try {
+        await window.Capacitor.Plugins.LocalNotifications.requestPermissions();
+      } catch (e) { console.log(e); }
+    }
+  },
+
+  async scheduleRetentionNotification() {
+    if (!window.Capacitor || !window.Capacitor.Plugins || !window.Capacitor.Plugins.LocalNotifications) return;
+
+    const { LocalNotifications } = window.Capacitor.Plugins;
+    try {
+      await LocalNotifications.cancel({ notifications: [{ id: 1 }] });
+
+      const nextLevel = this.getCurrentUnlockedLevelId();
+      
+      // Schedule to buzz the phone exactly 24 hours from now
+      await LocalNotifications.schedule({
+        notifications: [
+          {
+            title: "Your brain misses you! 🧠",
+            body: `Sector ${nextLevel} is waiting to be solved. Can you escape it?`,
+            id: 1,
+            schedule: { at: new Date(Date.now() + 1000 * 60 * 60 * 24) }, 
+            actionTypeId: "",
+            extra: null
+          }
+        ]
+      });
+    } catch (e) {
+      console.log("Notification schedule failed", e);
+    }
+  },
+
+  async cancelRetentionNotification() {
+    if (!window.Capacitor || !window.Capacitor.Plugins || !window.Capacitor.Plugins.LocalNotifications) return;
+    
+    const { LocalNotifications } = window.Capacitor.Plugins;
+    try {
+      await LocalNotifications.cancel({ notifications: [{ id: 1 }] });
+    } catch (e) {
+      console.log("Notification cancel failed", e);
     }
   },
 
